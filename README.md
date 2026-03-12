@@ -33,7 +33,7 @@ Put everything in the same folder, wherever you like:
       image2.jpg
       ...
 ```
-
+This folder structure is already correct inside the "Now-Playing-Overlay"-folder in the repo. So all you need to do is extract it wherever you want.
 The `bg` folder is optional — if it doesn't exist or is empty, the overlay just shows a plain dark card.
 
 ### 3. Start the server
@@ -42,7 +42,8 @@ Double-click `serve.bat`. A console window will open confirming it's running. Ke
 
 The server does two things: serves the HTML file to OBS, and proxies API requests to Beefweb. This sidesteps the browser's CORS restrictions that would otherwise block the overlay from talking to foobar.
 
-> **Tip:** Create a shortcut to `serve.bat` in your Start Menu (`C:\Users\[you]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs`) so it's one search away before every stream.
+> **Tip:** Create a shortcut to `serve.bat` in your Start Menu (`C:\Users\[you]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs`) so it's one search away before every stream.  
+> **Note:** The local server is the cleanest solution to OBS's CORS restrictions — every browser-based overlay that talks to a localhost API runs into the same wall and solves it the same way. Resource-wise it's negligible, lighter than a Discord notification, so it won't affect your stream performance at all.
 
 ### 4. OBS browser source
 
