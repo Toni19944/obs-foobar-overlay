@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Now Playing Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ─── VISUAL CONFIG ───────────────────────────────────────────
+     All the things you'd reasonably want to tweak are here.
+  ──────────────────────────────────────────────────────────────*/
+  :root {
+    /* Card shape */
+    --card-bg:         rgba(10, 10, 14, 0.72);
+    --card-border:     rgba(255, 255, 255, 0.07);
+    --card-blur:       28px;
+    --card-radius:     20px;
+    --card-padding-x:  28px;
+    --card-padding-y:  18px;
+    --card-min-width:  320px;
+
+    /* Background image treatment */
+    --img-opacity:     0.17;    /* 0 = invisible, 1 = full — keep low, 0.15–0.30 is sweet spot */
+    --img-blur:        0px;     /* extra softness on top of the card's own backdrop-blur */
+    --img-scale:       1.06;    /* slight zoom so edges don't show during fade */
+
+    /* Text */
+    --color-artist:    rgba(255, 255, 255, 0.42);
+    --color-track:     rgba(255, 255, 255, 0.92);
+    --color-timer:     rgba(255, 255, 255, 0.35);
+
+    /* Progress bar */
+    --color-bar-bg:    rgba(255, 255, 255, 0.10);
+    --color-bar-fill:  rgba(255, 255, 255, 0.50);
+
+    /* Fonts */
+    --font-artist: 'Syne', sans-serif;
+    --font-track:  'DM Sans', sans-serif;
+    --font-timer:  'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── CARD ───────────────────────────────────────────────── */
+  .card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--card-radius);
+    border: 0.5px solid var(--card-border);
+    background: var(--card-bg);
+    backdrop-filter: blur(var(--card-blur));
+    -webkit-backdrop-filter: blur(var(--card-blur));
+    padding: var(--card-padding-y) var(--card-padding-x);
+    min-width: var(--card-min-width);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ─── BACKGROUND IMAGE LAYERS ───────────────────────────── */
+  /*  Two stacked <img> elements. We alternate which one is "on
+      top" by fading opacity — smooth crossfade with no JS loops. */
+  .bg-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .bg-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(var(--img-scale));
+    filter: blur(var(--img-blur));
+    opacity: 0;
+    transition: opacity 0.9s ease;
+  }
+
+  .bg-img.active {
+    opacity: var(--img-opacity);
+  }
+
+  /* ─── CONTENT (sits above bg images) ────────────────────── */
+  .content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  /* ─── ARTIST ─────────────────────────────────────────────── */
+  .artist {
+    font-family: var(--font-artist);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-artist);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    transition: opacity 0.15s ease;
+  }
+
+  /* ─── MIDDLE ROW ─────────────────────────────────────────── */
+  .middle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    max-width: 100px;
+    height: 2px;
+    background: var(--color-bar-bg);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-left: auto;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--color-bar-fill);
+    border-radius: 2px;
+    transition: width 1s linear;
+  }
+
+  .timer {
+    font-family: var(--font-timer);
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--color-timer);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  }
+
+  /* ─── TRACK ──────────────────────────────────────────────── */
+  .track {
+    font-family: var(--font-track);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-track);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    transition: opacity 0.15s ease;
+  }
+
+  .fade-out {
+    opacity: 0 !important;
+  }
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+
+  <!-- Background image crossfade system (two layers, alternating) -->
+  <div class="bg-layer">
+    <img class="bg-img" id="bg-a" src="" alt="">
+    <img class="bg-img" id="bg-b" src="" alt="">
+  </div>
+
+  <!-- Text content -->
+  <div class="content">
+    <div class="artist" id="artist">Artist</div>
+    <div class="middle-row">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="timer" id="timer">0:00 / 0:00</div>
+    </div>
+    <div class="track" id="track">Track Title</div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+const CONFIG = {
+  // Beefweb API endpoint — columns order must match: artist, title, length_seconds
+  ENDPOINT: 'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
+  POLL_MS:  1000,
+  DEMO_MODE: false,   // ← set to true to preview without foobar running
+
+  // ── BACKGROUND IMAGES ─────────────────────────────────────
+  //  Just drop images into the "bg" folder next to this file
+  //  and serve.bat — they'll be picked up automatically.
+  //  Supported formats: jpg, jpeg, png, webp, avif
+  //  Set to false to disable background images entirely.
+  //
+  IMAGES: true,
+};
+
+// ── Elements ───────────────────────────────────────────────────
+const card     = document.getElementById('card');
+const elArtist = document.getElementById('artist');
+const elTrack  = document.getElementById('track');
+const elTimer  = document.getElementById('timer');
+const elFill   = document.getElementById('progress-fill');
+const bgA      = document.getElementById('bg-a');
+const bgB      = document.getElementById('bg-b');
+
+// ── Background image state ─────────────────────────────────────
+let imgQueue    = [];
+let activeLayer = 'a';
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function nextImage() {
+  if (!CONFIG.IMAGES || !allImages.length) return;
+  if (!imgQueue.length) imgQueue = shuffle(allImages);
+  const src      = imgQueue.pop();
+  const incoming = activeLayer === 'a' ? bgB : bgA;
+  const outgoing = activeLayer === 'a' ? bgA : bgB;
+  incoming.src = src;
+  incoming.onload = () => {
+    incoming.classList.add('active');
+    outgoing.classList.remove('active');
+    activeLayer = activeLayer === 'a' ? 'b' : 'a';
+  };
+}
+
+// Auto-load image list from serve.bat's /bg-list endpoint
+let allImages = [];
+
+async function loadImageList() {
+  if (!CONFIG.IMAGES) return;
+  try {
+    const res   = await fetch('http://localhost:8081/bg-list', { cache: 'no-store' });
+    const files = await res.json();
+    if (!files.length) return;
+    allImages = files;
+    imgQueue  = shuffle(allImages);
+    // Show first image immediately
+    const first = imgQueue.pop();
+    bgA.src = first;
+    bgA.onload = () => bgA.classList.add('active');
+  } catch (_) {}
+}
+
+loadImageList();
+
+// ── Helpers ────────────────────────────────────────────────────
+function fmtTime(s) {
+  s = Math.max(0, Math.floor(s));
+  const m   = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+let lastTitle = '';
+
+function updateUI({ artist, title, position, duration }) {
+  const isNewTrack = title !== lastTitle;
+
+  if (isNewTrack) {
+    elArtist.classList.add('fade-out');
+    elTrack.classList.add('fade-out');
+
+    setTimeout(() => {
+      elArtist.textContent = artist || '—';
+      elTrack.textContent  = title  || '—';
+      elArtist.classList.remove('fade-out');
+      elTrack.classList.remove('fade-out');
+    }, 160);
+
+    nextImage();
+    lastTitle = title;
+  }
+
+  elTimer.textContent = `${fmtTime(position)} / ${fmtTime(duration)}`;
+  elFill.style.width  = duration > 0
+    ? `${Math.min(100, (position / duration) * 100)}%`
+    : '0%';
+
+  card.classList.add('visible');
+}
+
+// ── Live fetch (Beefweb) ───────────────────────────────────────
+//  Beefweb response shape:
+//  { player: { activeItem: { columns: [artist, title, length_secs],
+//                            position: 42.1, duration: 217.0 } } }
+async function fetchNowPlaying() {
+  try {
+    const res  = await fetch(CONFIG.ENDPOINT, { cache: 'no-store' });
+    const data = await res.json();
+    const item = data?.player?.activeItem;
+    if (!item || item.index < 0) { card.classList.remove('visible'); return; }
+    updateUI({
+      artist:   item.columns?.[0] || '—',
+      title:    item.columns?.[1] || '—',
+      position: parseFloat(item.position) || 0,
+      duration: parseFloat(item.duration) || 0,
+    });
+  } catch (_) {
+    card.classList.remove('visible');
+  }
+}
+
+// ── Demo mode ──────────────────────────────────────────────────
+const DEMO_TRACKS = [
+  { artist: 'Floating Points', title: 'LesAlpx',        duration: 272 },
+  { artist: 'Burial',          title: 'Archangel',       duration: 196 },
+  { artist: 'Four Tet',        title: 'Angel Echoes',    duration: 263 },
+  { artist: 'Jon Hopkins',     title: 'Open Eye Signal', duration: 475 },
+];
+let demoIdx = 0, demoPos = 0;
+
+function runDemo() {
+  const t = DEMO_TRACKS[demoIdx];
+  updateUI({ artist: t.artist, title: t.title, position: demoPos, duration: t.duration });
+  demoPos++;
+  if (demoPos >= t.duration) {
+    demoPos = 0;
+    demoIdx = (demoIdx + 1) % DEMO_TRACKS.length;
+  }
+}
+
+// ── Boot ───────────────────────────────────────────────────────
+if (CONFIG.DEMO_MODE) {
+  runDemo();
+  setInterval(runDemo, CONFIG.POLL_MS);
+} else {
+  fetchNowPlaying();
+  setInterval(fetchNowPlaying, CONFIG.POLL_MS);
+}
+</script>
+</body>
+</html>
