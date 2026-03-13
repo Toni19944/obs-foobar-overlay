@@ -144,6 +144,22 @@ The third value is the blur radius (how spread out the shadow is) and the last v
 | `--color-bar-bg` | `rgba(255,255,255,0.10)` | The unfilled portion of the progress bar. |
 | `--color-bar-fill` | `rgba(255,255,255,0.50)` | The filled portion. |
 
+#### Marquee scrolling
+
+Text that fits inside the card stays still. Text that overflows automatically pans to the end, pauses, then pans back — only the fields that need it scroll, independently of each other.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `--card-width` | `340px` | Fixed width of the card. Adjust this to fit your layout. |
+| `--marquee-speed` | `22s` | Total duration of one scroll cycle. Lower = faster. |
+
+The edge fade that softens text as it scrolls in and out is controlled by this line in the CSS:
+```css
+mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
+```
+
+The first percentage pair (`0%, 1%`) controls the left fade, the second (`99%, 100%`) controls the right. Set both inner values to `0%` and `100%` respectively to remove the fade entirely.
+
 ---
 
 ## Behaviour notes
@@ -165,3 +181,9 @@ The third value is the blur radius (how spread out the shadow is) and the last v
 | `8081` | Overlay server (what OBS connects to) |
 
 If either port conflicts with something else on your machine, `8880` can be changed in Beefweb's preferences and `overlay-server.ps1`, and `8081` can be changed in both `overlay-server.ps1` and the `ENDPOINT` value in the HTML.
+
+---
+
+## Disclaimer
+
+This was coded/created Claude AI (Sonnet 4.6). I know frick-all about programming/coding. Just figured to inform that instead of being all like "I made this" when in reality I mostly copy pasted code.
