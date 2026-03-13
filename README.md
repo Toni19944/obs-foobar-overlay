@@ -186,4 +186,4 @@ If either port conflicts with something else on your machine, `8880` can be chan
 
 ## Disclaimer
 
-This was coded/created Claude AI (Sonnet 4.6). I know frick-all about programming/coding. Just figured to inform that instead of being all like "I made this" when in reality I mostly copy pasted code.
+This was coded/created with Claude AI (Sonnet 4.6). I know frick-all about programming/coding. Just figured to inform that instead of being all like "I made this" when in reality I mostly copy pasted code.
