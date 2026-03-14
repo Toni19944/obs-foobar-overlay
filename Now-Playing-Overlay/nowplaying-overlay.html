@@ -111,18 +111,18 @@
     display: flex;
     flex-direction: column;
     gap: 7px;
-    /* Fade edges so text slides in/out cleanly */
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
-    mask-image:         linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
   }
 
   /* ─── MARQUEE WRAPPER ────────────────────────────────────── */
-  /*  Each text field sits inside a clip container. When the text
-      is wider than the container, JS adds the .scrolling class
-      which triggers the back-and-forth animation.             */
   .marquee-clip {
     overflow: hidden;
     width: 100%;
+  }
+
+  /* Fade only applied when text is actually scrolling */
+  .marquee-clip.scrolling {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
+    mask-image:         linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
   }
 
   .marquee-clip .inner {

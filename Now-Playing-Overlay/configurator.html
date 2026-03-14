@@ -813,11 +813,15 @@ function applyToMock() {
   mockBarFill.style.background = `rgba(255,255,255,${s.barFillOp/100})`;
   mockBarBg.style.background   = `rgba(255,255,255,${s.barBgOp/100})`;
 
-  // Fade mask
+  // Fade mask — only on scrolling clips
   const fl = s.fadeLeft, fr = s.fadeRight;
   const mask = `linear-gradient(to right, transparent 0%, black ${fl}%, black ${100-fr}%, transparent 100%)`;
-  mockContent.style.webkitMaskImage = mask;
-  mockContent.style.maskImage = mask;
+  const noMask = '';
+  [document.getElementById('artist-clip'), document.getElementById('track-clip')].forEach(clip => {
+    const isScrolling = clip.classList.contains('scrolling');
+    clip.style.webkitMaskImage = isScrolling ? mask : noMask;
+    clip.style.maskImage       = isScrolling ? mask : noMask;
+  });
 
   updateOutput();
 }
@@ -1078,12 +1082,13 @@ function generateHTML() {
     display: flex;
     flex-direction: column;
     gap: 7px;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);
   }
 
   .marquee-clip { overflow: hidden; width: 100%; }
-  .marquee-clip .inner { display: inline-block; white-space: nowrap; }
+  .marquee-clip.scrolling {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);
+    mask-image:         linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);
+  }
 
   @keyframes marquee-bounce {
     0%   { transform: translateX(0); }
@@ -1237,6 +1242,8 @@ loadImageList();
 function applyMarquee(clip, inner) {
   clip.classList.remove('scrolling');
   inner.style.removeProperty('--marquee-offset');
+  clip.style.webkitMaskImage = '';
+  clip.style.maskImage = '';
   requestAnimationFrame(() => {
     const overflow = inner.scrollWidth - clip.clientWidth;
     if (overflow > 2) {
@@ -1329,24 +1336,22 @@ document.getElementById('preview-track').addEventListener('input', e => {
 
 // ── Mock marquee ───────────────────────────────────────────────
 function applyMockMarquee() {
-  // artist
-  const aOverflow = mockArtist.scrollWidth - mockArtist.parentElement?.clientWidth || 0;
-  if (aOverflow > 2) {
-    mockArtist.style.setProperty('--marquee-offset', `-${aOverflow}px`);
-    mockArtist.classList.add('scrolling');
-  } else {
-    mockArtist.classList.remove('scrolling');
-    mockArtist.style.removeProperty('--marquee-offset');
-  }
-  // track
-  const tOverflow = mockTrack.scrollWidth - mockTrack.parentElement?.clientWidth || 0;
-  if (tOverflow > 2) {
-    mockTrack.style.setProperty('--marquee-offset', `-${tOverflow}px`);
-    mockTrack.classList.add('scrolling');
-  } else {
-    mockTrack.classList.remove('scrolling');
-    mockTrack.style.removeProperty('--marquee-offset');
-  }
+  const fl = state.fadeLeft, fr = state.fadeRight;
+  const mask = `linear-gradient(to right, transparent 0%, black ${fl}%, black ${100-fr}%, transparent 100%)`;
+
+  [[mockArtist, document.getElementById('artist-clip')],
+   [mockTrack,  document.getElementById('track-clip')]].forEach(([el, clip]) => {
+    const overflow = el.scrollWidth - (clip?.clientWidth || 0);
+    if (overflow > 2) {
+      el.style.setProperty('--marquee-offset', `-${overflow}px`);
+      el.classList.add('scrolling');
+      if (clip) { clip.style.webkitMaskImage = mask; clip.style.maskImage = mask; }
+    } else {
+      el.classList.remove('scrolling');
+      el.style.removeProperty('--marquee-offset');
+      if (clip) { clip.style.webkitMaskImage = ''; clip.style.maskImage = ''; }
+    }
+  });
 }
 
 
