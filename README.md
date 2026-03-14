@@ -87,6 +87,14 @@ Avoid heavily detailed photos (dense forests, city skylines at night) unless you
 
 ## Configuration
 
+A GUI configurator is included to make tweaking the overlay easy — no manual CSS editing required. Open `configurator.html` in any browser, adjust the sliders and settings, preview the result live, then hit **Save file** to download a ready-to-use `nowplaying-overlay.html` with your settings baked in.
+
+<img src="configurator-preview.png" width="800" alt="configurator preview">
+
+The configurator also has **Copy CSS** and **Copy HTML** buttons if you'd rather paste the changes manually into an existing file.
+
+---
+
 ### JavaScript (`CONFIG` block near the top of the HTML)
 
 | Option | Default | Description |
