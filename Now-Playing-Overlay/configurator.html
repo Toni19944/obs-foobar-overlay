@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Now Playing Overlay — Configurator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0c0c10;
+    --surface:   #13131a;
+    --surface2:  #1a1a24;
+    --border:    rgba(255,255,255,0.07);
+    --border2:   rgba(255,255,255,0.12);
+    --text:      rgba(255,255,255,0.88);
+    --muted:     rgba(255,255,255,0.38);
+    --accent:    #7c6dfa;
+    --accent-dim:rgba(124,109,250,0.15);
+    --success:   #3ecf8e;
+    --radius:    10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ──────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px;
+    border-bottom: 0.5px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--accent); }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 0.5px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .btn:hover { background: var(--surface); border-color: rgba(255,255,255,0.2); }
+  .btn:active { transform: scale(0.97); }
+
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .btn.primary:hover { background: #6b5de8; border-color: #6b5de8; }
+
+  .btn.success {
+    background: var(--success) !important;
+    border-color: var(--success) !important;
+    color: #0c0c10 !important;
+  }
+
+  /* ── LAYOUT ──────────────────────────────────────────────── */
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ─────────────────────────────────────────────── */
+  .sidebar {
+    border-right: 0.5px solid var(--border);
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .section {
+    padding: 0 20px 20px;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .section:last-child { border-bottom: none; }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-top: 20px;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  .field-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+  }
+
+  .field-value {
+    font-size: 12px;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  /* Range slider */
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  /* Color picker */
+  .color-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  input[type=color] {
+    -webkit-appearance: none;
+    width: 32px;
+    height: 32px;
+    border: 0.5px solid var(--border2);
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+    padding: 2px;
+    flex-shrink: 0;
+  }
+
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 4px; }
+  input[type=color]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+  .opacity-slider { flex: 1; }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+
+  .toggle-label { font-size: 13px; color: rgba(255,255,255,0.65); }
+
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border2);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .toggle input:checked + .toggle-track { background: var(--accent); }
+  .toggle input:checked + .toggle-track::after {
+    transform: translateX(16px);
+    background: #fff;
+  }
+
+  /* Number input */
+  input[type=number], input[type=text] {
+    width: 100%;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type=number]:focus, input[type=text]:focus { border-color: var(--accent); }
+
+  /* ── PREVIEW PANE ────────────────────────────────────────── */
+  .preview-pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .preview-header {
+    padding: 10px 24px;
+    border-bottom: 0.5px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .preview-header-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .preview-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .preview-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+    width: 46px;
+    flex-shrink: 0;
+  }
+
+  .preview-title {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .bg-swatches {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .bg-swatch {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: border-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .bg-swatch.active { border-color: var(--accent); }
+
+  .preview-canvas {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s ease;
+  }
+
+  /* ── MOCK CARD ───────────────────────────────────────────── */
+  #mock-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  #mock-bg-a, #mock-bg-b {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  #mock-bg-a.active, #mock-bg-b.active {
+    opacity: var(--mock-img-opacity, 0.22);
+  }
+
+  .mock-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .mock-artist {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @keyframes mock-marquee {
+    0%   { transform: translateX(0); }
+    10%  { transform: translateX(0); }
+    45%  { transform: translateX(var(--marquee-offset, 0px)); }
+    55%  { transform: translateX(var(--marquee-offset, 0px)); }
+    90%  { transform: translateX(0); }
+    100% { transform: translateX(0); }
+  }
+
+  .mock-artist.scrolling, .mock-track.scrolling {
+    overflow: visible;
+    text-overflow: clip;
+    animation: mock-marquee 8s ease-in-out infinite;
+  }
+
+  .mock-middle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mock-bar-bg {
+    flex: 1;
+    height: 2px;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-left: auto;
+  }
+
+  .mock-bar-fill {
+    height: 100%;
+    width: 46%;
+    border-radius: 2px;
+  }
+
+  .mock-timer {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .mock-track {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── OUTPUT ──────────────────────────────────────────────── */
+  .output-panel {
+    border-top: 0.5px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .output-tabs {
+    display: flex;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .output-tab {
+    padding: 10px 18px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .output-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .output-body {
+    position: relative;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .output-body::-webkit-scrollbar { width: 4px; }
+  .output-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  pre {
+    padding: 14px 18px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.7);
+    white-space: pre;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .kw  { color: #c792ea; }
+  .str { color: #c3e88d; }
+  .num { color: #f78c6c; }
+  .cm  { color: #546e7a; }
+  .prop{ color: #82aaff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">now playing <span>configurator</span></div>
+  <div class="header-actions">
+    <button class="btn" id="btn-copy">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy CSS
+    </button>
+    <button class="btn" id="btn-copy-html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Copy HTML
+    </button>
+    <button class="btn primary" id="btn-save">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Save file
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="section">
+      <div class="section-title">Card</div>
+
+      <div class="field">
+        <div class="field-label">Width <span class="field-value" id="val-width">340px</span></div>
+        <input type="range" id="card-width" min="240" max="560" value="340" step="2">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Corner radius <span class="field-value" id="val-radius">20px</span></div>
+        <input type="range" id="card-radius" min="0" max="60" value="20" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Backdrop blur <span class="field-value" id="val-blur">28px</span></div>
+        <input type="range" id="card-blur" min="0" max="60" value="28" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Padding horizontal <span class="field-value" id="val-px">28px</span></div>
+        <input type="range" id="card-px" min="8" max="60" value="28" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Padding vertical <span class="field-value" id="val-py">18px</span></div>
+        <input type="range" id="card-py" min="6" max="40" value="18" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Background opacity <span class="field-value" id="val-bg-op">72%</span></div>
+        <input type="range" id="card-bg-op" min="0" max="100" value="72" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Border opacity <span class="field-value" id="val-border-op">7%</span></div>
+        <input type="range" id="card-border-op" min="0" max="60" value="7" step="1">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Background image</div>
+
+      <div class="field">
+        <div class="field-label">Image opacity <span class="field-value" id="val-img-op">22%</span></div>
+        <input type="range" id="img-op" min="0" max="60" value="22" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Image blur <span class="field-value" id="val-img-blur">0px</span></div>
+        <input type="range" id="img-blur" min="0" max="20" value="0" step="1">
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Enable background images</span>
+        <label class="toggle">
+          <input type="checkbox" id="images-enabled" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Text</div>
+
+      <div class="field">
+        <div class="field-label">Track opacity <span class="field-value" id="val-track-op">92%</span></div>
+        <input type="range" id="track-op" min="20" max="100" value="92" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Artist opacity <span class="field-value" id="val-artist-op">42%</span></div>
+        <input type="range" id="artist-op" min="10" max="100" value="42" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Timer opacity <span class="field-value" id="val-timer-op">35%</span></div>
+        <input type="range" id="timer-op" min="10" max="100" value="35" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Track shadow blur <span class="field-value" id="val-track-sh">6px</span></div>
+        <input type="range" id="track-shadow" min="0" max="20" value="6" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Track shadow opacity <span class="field-value" id="val-track-sh-op">70%</span></div>
+        <input type="range" id="track-shadow-op" min="0" max="100" value="70" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Artist/timer shadow blur <span class="field-value" id="val-artist-sh">4px</span></div>
+        <input type="range" id="artist-shadow" min="0" max="20" value="4" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Artist/timer shadow opacity <span class="field-value" id="val-artist-sh-op">60%</span></div>
+        <input type="range" id="artist-shadow-op" min="0" max="100" value="60" step="1">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Progress bar</div>
+
+      <div class="field">
+        <div class="field-label">Fill opacity <span class="field-value" id="val-bar-fill-op">50%</span></div>
+        <input type="range" id="bar-fill-op" min="10" max="100" value="50" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Track opacity <span class="field-value" id="val-bar-bg-op">10%</span></div>
+        <input type="range" id="bar-bg-op" min="0" max="40" value="10" step="1">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Marquee</div>
+
+      <div class="field">
+        <div class="field-label">Scroll speed <span class="field-value" id="val-marquee">22s</span></div>
+        <input type="range" id="marquee-speed" min="6" max="60" value="22" step="1">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Preview text</div>
+
+      <div class="field">
+        <div class="field-label">Artist</div>
+        <input type="text" id="preview-artist" value="Floating Points" placeholder="Artist name…">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Track</div>
+        <input type="text" id="preview-track" value="LesAlpx" placeholder="Track title…">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Polling</div>
+
+      <div class="field">
+        <div class="field-label">Poll interval (ms)</div>
+        <input type="number" id="poll-ms" value="1000" min="250" max="5000" step="250">
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── PREVIEW + OUTPUT ──────────────────────────────────── -->
+  <div class="preview-pane">
+
+    <div class="preview-header">
+      <div class="preview-header-inner">
+        <div class="preview-row">
+          <span class="preview-label">Canvas</span>
+          <div class="bg-swatches" id="canvas-swatches">
+            <div class="bg-swatch canvas-swatch active" data-bg="#0c0c10" style="background:#0c0c10; border:1px solid rgba(255,255,255,0.15);" title="Dark"></div>
+            <div class="bg-swatch canvas-swatch" data-bg="#1a1035" style="background:#1a1035;" title="Purple"></div>
+            <div class="bg-swatch canvas-swatch" data-bg="#0d1f2d" style="background:#0d1f2d;" title="Navy"></div>
+            <div class="bg-swatch canvas-swatch" data-bg="#1a0d0d" style="background:#1a0d0d;" title="Red"></div>
+            <div class="bg-swatch canvas-swatch" data-bg="#6b7280" style="background:#6b7280;" title="Grey (game capture)"></div>
+            <div class="bg-swatch canvas-swatch" data-bg="repeating-conic-gradient(#444 0% 25%, #222 0% 50%) 0 0 / 12px 12px" style="background:repeating-conic-gradient(#444 0% 25%, #222 0% 50%) 0 0 / 12px 12px;" title="Checkerboard (opacity test)"></div>
+          </div>
+        </div>
+        <div class="preview-row">
+          <span class="preview-label">Card bg</span>
+          <div class="bg-swatches" id="card-swatches">
+            <div class="bg-swatch card-swatch active" data-img="" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);" title="None">
+              <svg width="10" height="10" viewBox="0 0 10 10" style="position:absolute;inset:0;margin:auto;opacity:0.5"><line x1="1" y1="1" x2="9" y2="9" stroke="white" stroke-width="1.5"/><line x1="9" y1="1" x2="1" y2="9" stroke="white" stroke-width="1.5"/></svg>
+            </div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=80&q=60) center/cover;" title="Mountain landscape"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1501854140801-50d01698950b?w=80&q=60) center/cover;" title="Aerial forest"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=80&q=60) center/cover;" title="Snowy peaks"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=80&q=60) center/cover;" title="Sunset gradient"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1462275646964-a0e3386b89fa?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1462275646964-a0e3386b89fa?w=80&q=60) center/cover;" title="Dark ocean"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=80&q=60) center/cover;" title="Starfield"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&q=60) center/cover;" title="Aurora"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=80&q=60) center/cover;" title="Misty forest"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=80&q=60) center/cover;" title="Moody lake"></div>
+            <div class="bg-swatch card-swatch" data-img="https://images.unsplash.com/photo-1604537529428-15bcbeecfe4d?w=800&q=60" style="background:url(https://images.unsplash.com/photo-1604537529428-15bcbeecfe4d?w=80&q=60) center/cover;" title="Neon city"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-canvas" id="preview-canvas">
+      <!-- Mock card -->
+      <div id="mock-card">
+        <img id="mock-bg-a" src="" alt="">
+        <img id="mock-bg-b" src="" alt="">
+        <div class="mock-content" id="mock-content">
+          <div class="mock-artist" id="mock-artist">Floating Points</div>
+          <div class="mock-middle">
+            <div class="mock-bar-bg" id="mock-bar-bg">
+              <div class="mock-bar-fill" id="mock-bar-fill"></div>
+            </div>
+            <div class="mock-timer" id="mock-timer">1:27 / 4:32</div>
+          </div>
+          <div class="mock-track" id="mock-track">LesAlpx</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output panel -->
+    <div class="output-panel">
+      <div class="output-tabs">
+        <div class="output-tab active" data-tab="css">CSS variables</div>
+        <div class="output-tab" data-tab="js">JS config</div>
+      </div>
+      <div class="output-body">
+        <div class="tab-content active" id="tab-css">
+          <pre id="out-css"></pre>
+        </div>
+        <div class="tab-content" id="tab-js">
+          <pre id="out-js"></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────
+const state = {
+  cardWidth:      340,
+  cardRadius:     20,
+  cardBlur:       28,
+  cardPx:         28,
+  cardPy:         18,
+  cardBgOp:       72,
+  cardBorderOp:   7,
+  imgOp:          22,
+  imgBlur:        0,
+  imagesEnabled:  true,
+  trackOp:        92,
+  artistOp:       42,
+  timerOp:        35,
+  trackShadow:    6,
+  trackShadowOp:  70,
+  artistShadow:   4,
+  artistShadowOp: 60,
+  barFillOp:      50,
+  barBgOp:        10,
+  marqueeSpeed:   22,
+  pollMs:         1000,
+};
+
+// ── Elements ───────────────────────────────────────────────────
+const card       = document.getElementById('mock-card');
+const mockContent= document.getElementById('mock-content');
+const mockArtist = document.getElementById('mock-artist');
+const mockTrack  = document.getElementById('mock-track');
+const mockTimer  = document.getElementById('mock-timer');
+const mockBarBg  = document.getElementById('mock-bar-bg');
+const mockBarFill= document.getElementById('mock-bar-fill');
+const mockBgA    = document.getElementById('mock-bg-a');
+const mockBgB    = document.getElementById('mock-bg-b');
+const canvas     = document.getElementById('preview-canvas');
+
+// ── Apply all state to the mock card ──────────────────────────
+function applyToMock() {
+  const s = state;
+
+  // Card
+  card.style.width         = s.cardWidth + 'px';
+  card.style.borderRadius  = s.cardRadius + 'px';
+  card.style.padding       = `${s.cardPy}px ${s.cardPx}px`;
+  card.style.background    = `rgba(10,10,14,${s.cardBgOp/100})`;
+  card.style.border        = `0.5px solid rgba(255,255,255,${s.cardBorderOp/100})`;
+
+  // Image bg
+  card.style.setProperty('--mock-img-opacity', s.imgOp / 100);
+  mockBgA.style.filter  = `blur(${s.imgBlur}px)`;
+  mockBgB.style.filter  = `blur(${s.imgBlur}px)`;
+
+  // Text colours
+  mockArtist.style.color = `rgba(255,255,255,${s.artistOp/100})`;
+  mockTrack.style.color  = `rgba(255,255,255,${s.trackOp/100})`;
+  mockTimer.style.color  = `rgba(255,255,255,${s.timerOp/100})`;
+
+  // Shadows
+  const tsh = `0 1px ${s.trackShadow}px rgba(0,0,0,${s.trackShadowOp/100})`;
+  const ash  = `0 1px ${s.artistShadow}px rgba(0,0,0,${s.artistShadowOp/100})`;
+  mockTrack.style.textShadow  = tsh;
+  mockArtist.style.textShadow = ash;
+  mockTimer.style.textShadow  = ash;
+
+  // Progress bar
+  mockBarFill.style.background = `rgba(255,255,255,${s.barFillOp/100})`;
+  mockBarBg.style.background   = `rgba(255,255,255,${s.barBgOp/100})`;
+
+  // Marquee speed on mock (just visual)
+  card.style.setProperty('--marquee-speed', s.marqueeSpeed + 's');
+
+  updateOutput();
+}
+
+// ── Bind all controls ──────────────────────────────────────────
+function bindRange(id, key, valId, unit, transform) {
+  const el  = document.getElementById(id);
+  const val = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    const v = parseFloat(el.value);
+    state[key] = v;
+    val.textContent = transform ? transform(v) : v + unit;
+    applyToMock();
+  });
+}
+
+bindRange('card-width',       'cardWidth',      'val-width',         'px');
+bindRange('card-radius',      'cardRadius',     'val-radius',        'px');
+bindRange('card-blur',        'cardBlur',       'val-blur',          'px');
+bindRange('card-px',          'cardPx',         'val-px',            'px');
+bindRange('card-py',          'cardPy',         'val-py',            'px');
+bindRange('card-bg-op',       'cardBgOp',       'val-bg-op',         '%');
+bindRange('card-border-op',   'cardBorderOp',   'val-border-op',     '%');
+bindRange('img-op',           'imgOp',          'val-img-op',        '%');
+bindRange('img-blur',         'imgBlur',        'val-img-blur',      'px');
+bindRange('track-op',         'trackOp',        'val-track-op',      '%');
+bindRange('artist-op',        'artistOp',       'val-artist-op',     '%');
+bindRange('timer-op',         'timerOp',        'val-timer-op',      '%');
+bindRange('track-shadow',     'trackShadow',    'val-track-sh',      'px');
+bindRange('track-shadow-op',  'trackShadowOp',  'val-track-sh-op',   '%');
+bindRange('artist-shadow',    'artistShadow',   'val-artist-sh',     'px');
+bindRange('artist-shadow-op', 'artistShadowOp', 'val-artist-sh-op',  '%');
+bindRange('bar-fill-op',      'barFillOp',      'val-bar-fill-op',   '%');
+bindRange('bar-bg-op',        'barBgOp',        'val-bar-bg-op',     '%');
+bindRange('marquee-speed',    'marqueeSpeed',   'val-marquee',       's');
+
+// Re-check marquee when width changes
+document.getElementById('card-width').addEventListener('input', () => {
+  requestAnimationFrame(applyMockMarquee);
+});
+
+document.getElementById('poll-ms').addEventListener('input', e => {
+  state.pollMs = parseInt(e.target.value) || 1000;
+  updateOutput();
+});
+
+document.getElementById('images-enabled').addEventListener('change', e => {
+  state.imagesEnabled = e.target.checked;
+  updateOutput();
+});
+
+// ── Background preview swatches ────────────────────────────────
+document.querySelectorAll('.canvas-swatch').forEach(swatch => {
+  swatch.addEventListener('click', () => {
+    document.querySelectorAll('.canvas-swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
+    canvas.style.background = swatch.dataset.bg;
+  });
+});
+
+document.querySelectorAll('.card-swatch').forEach(swatch => {
+  swatch.addEventListener('click', () => {
+    document.querySelectorAll('.card-swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
+    const url = swatch.dataset.img;
+    if (!url) {
+      mockBgA.src = '';
+      mockBgA.classList.remove('active');
+      mockBgB.src = '';
+      mockBgB.classList.remove('active');
+    } else {
+      mockBgA.src = url;
+      mockBgA.onload = () => mockBgA.classList.add('active');
+      mockBgB.classList.remove('active');
+    }
+  });
+});
+
+// ── Output tabs ────────────────────────────────────────────────
+document.querySelectorAll('.output-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Generate output ────────────────────────────────────────────
+function r(v) { return Math.round(v * 100) / 100; }
+
+function getCSSOutput() {
+  const s = state;
+  return `  :root {
+    /* Card shape */
+    --card-bg:         rgba(10, 10, 14, ${r(s.cardBgOp/100)});
+    --card-border:     rgba(255, 255, 255, ${r(s.cardBorderOp/100)});
+    --card-blur:       ${s.cardBlur}px;
+    --card-radius:     ${s.cardRadius}px;
+    --card-padding-x:  ${s.cardPx}px;
+    --card-padding-y:  ${s.cardPy}px;
+    --card-width:      ${s.cardWidth}px;
+
+    /* Background image treatment */
+    --img-opacity:     ${r(s.imgOp/100)};
+    --img-blur:        ${s.imgBlur}px;
+    --img-scale:       1.06;
+
+    /* Text */
+    --color-artist:    rgba(255, 255, 255, ${r(s.artistOp/100)});
+    --color-track:     rgba(255, 255, 255, ${r(s.trackOp/100)});
+    --color-timer:     rgba(255, 255, 255, ${r(s.timerOp/100)});
+
+    /* Progress bar */
+    --color-bar-bg:    rgba(255, 255, 255, ${r(s.barBgOp/100)});
+    --color-bar-fill:  rgba(255, 255, 255, ${r(s.barFillOp/100)});
+
+    /* Marquee */
+    --marquee-speed:   ${s.marqueeSpeed}s;
+
+    /* Fonts */
+    --font-artist: 'Syne', sans-serif;
+    --font-track:  'DM Sans', sans-serif;
+    --font-timer:  'DM Sans', sans-serif;
+  }
+
+/* Text shadows — find these in the CSS and replace: */
+
+  /* .artist and .timer */
+  text-shadow: 0 1px ${s.artistShadow}px rgba(0,0,0,${r(s.artistShadowOp/100)});
+
+  /* .track */
+  text-shadow: 0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)});`;
+}
+
+function getJSOutput() {
+  const s = state;
+  return `  const CONFIG = {
+    ENDPOINT: 'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
+    POLL_MS:   ${s.pollMs},
+    DEMO_MODE: false,
+    IMAGES:    ${s.imagesEnabled},
+  };`;
+}
+
+function updateOutput() {
+  document.getElementById('out-css').textContent = getCSSOutput();
+  document.getElementById('out-js').textContent  = getJSOutput();
+}
+
+// ── Copy button ────────────────────────────────────────────────
+document.getElementById('btn-copy').addEventListener('click', () => {
+  const activeTab = document.querySelector('.output-tab.active').dataset.tab;
+  const text = activeTab === 'css' ? getCSSOutput() : getJSOutput();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('btn-copy');
+    btn.classList.add('success');
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+    setTimeout(() => {
+      btn.classList.remove('success');
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy CSS`;
+    }, 2000);
+  });
+});
+
+// ── Generate full HTML ─────────────────────────────────────────
+function generateHTML() {
+  const s = state;
+  const artistShadow = `0 1px ${s.artistShadow}px rgba(0,0,0,${r(s.artistShadowOp/100)})`;
+  const trackShadow  = `0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)})`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Now Playing Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --card-bg:         rgba(10, 10, 14, ${r(s.cardBgOp/100)});
+    --card-border:     rgba(255, 255, 255, ${r(s.cardBorderOp/100)});
+    --card-blur:       ${s.cardBlur}px;
+    --card-radius:     ${s.cardRadius}px;
+    --card-padding-x:  ${s.cardPx}px;
+    --card-padding-y:  ${s.cardPy}px;
+    --card-width:      ${s.cardWidth}px;
+    --img-opacity:     ${r(s.imgOp/100)};
+    --img-blur:        ${s.imgBlur}px;
+    --img-scale:       1.06;
+    --color-artist:    rgba(255, 255, 255, ${r(s.artistOp/100)});
+    --color-track:     rgba(255, 255, 255, ${r(s.trackOp/100)});
+    --color-timer:     rgba(255, 255, 255, ${r(s.timerOp/100)});
+    --color-bar-bg:    rgba(255, 255, 255, ${r(s.barBgOp/100)});
+    --color-bar-fill:  rgba(255, 255, 255, ${r(s.barFillOp/100)});
+    --marquee-speed:   ${s.marqueeSpeed}s;
+    --font-artist: 'Syne', sans-serif;
+    --font-track:  'DM Sans', sans-serif;
+    --font-timer:  'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--card-radius);
+    border: 0.5px solid var(--card-border);
+    background: var(--card-bg);
+    backdrop-filter: blur(var(--card-blur));
+    -webkit-backdrop-filter: blur(var(--card-blur));
+    padding: var(--card-padding-y) var(--card-padding-x);
+    width: var(--card-width);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .card.visible { opacity: 1; transform: translateY(0); }
+
+  .bg-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+
+  .bg-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(var(--img-scale));
+    filter: blur(var(--img-blur));
+    opacity: 0;
+    transition: opacity 0.9s ease;
+  }
+
+  .bg-img.active { opacity: var(--img-opacity); }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
+  }
+
+  .marquee-clip { overflow: hidden; width: 100%; }
+  .marquee-clip .inner { display: inline-block; white-space: nowrap; }
+
+  @keyframes marquee-bounce {
+    0%   { transform: translateX(0); }
+    10%  { transform: translateX(0); }
+    45%  { transform: translateX(var(--marquee-offset)); }
+    55%  { transform: translateX(var(--marquee-offset)); }
+    90%  { transform: translateX(0); }
+    100% { transform: translateX(0); }
+  }
+
+  .marquee-clip.scrolling .inner {
+    animation: marquee-bounce var(--marquee-speed) ease-in-out infinite;
+  }
+
+  .artist {
+    font-family: var(--font-artist);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-artist);
+    text-shadow: ${artistShadow};
+    transition: opacity 0.15s ease;
+  }
+
+  .middle-row { display: flex; align-items: center; gap: 10px; }
+
+  .progress-bar {
+    flex: 1;
+    height: 2px;
+    background: var(--color-bar-bg);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-left: auto;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--color-bar-fill);
+    border-radius: 2px;
+    transition: width 1s linear;
+  }
+
+  .timer {
+    font-family: var(--font-timer);
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--color-timer);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-shadow: ${artistShadow};
+  }
+
+  .track {
+    font-family: var(--font-track);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-track);
+    text-shadow: ${trackShadow};
+    transition: opacity 0.15s ease;
+  }
+
+  .fade-out { opacity: 0 !important; }
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <div class="bg-layer">
+    <img class="bg-img" id="bg-a" src="" alt="">
+    <img class="bg-img" id="bg-b" src="" alt="">
+  </div>
+  <div class="content">
+    <div class="marquee-clip" id="artist-clip">
+      <div class="inner artist" id="artist">Artist</div>
+    </div>
+    <div class="middle-row">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="timer" id="timer">0:00 / 0:00</div>
+    </div>
+    <div class="marquee-clip" id="track-clip">
+      <div class="inner track" id="track">Track Title</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  ENDPOINT: 'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
+  POLL_MS:  ${s.pollMs},
+  DEMO_MODE: false,
+  IMAGES: ${s.imagesEnabled},
+};
+
+const card     = document.getElementById('card');
+const elArtist = document.getElementById('artist');
+const elTrack  = document.getElementById('track');
+const elTimer  = document.getElementById('timer');
+const elFill   = document.getElementById('progress-fill');
+const bgA      = document.getElementById('bg-a');
+const bgB      = document.getElementById('bg-b');
+const artistClip = document.getElementById('artist-clip');
+const trackClip  = document.getElementById('track-clip');
+
+let imgQueue = [], allImages = [], activeLayer = 'a', lastTitle = '';
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function nextImage() {
+  if (!CONFIG.IMAGES || !allImages.length) return;
+  if (!imgQueue.length) imgQueue = shuffle(allImages);
+  const src      = imgQueue.pop();
+  const incoming = activeLayer === 'a' ? bgB : bgA;
+  const outgoing = activeLayer === 'a' ? bgA : bgB;
+  incoming.src = src;
+  incoming.onload = () => {
+    incoming.classList.add('active');
+    outgoing.classList.remove('active');
+    activeLayer = activeLayer === 'a' ? 'b' : 'a';
+  };
+}
+
+async function loadImageList() {
+  if (!CONFIG.IMAGES) return;
+  try {
+    const res   = await fetch('http://localhost:8081/bg-list', { cache: 'no-store' });
+    const files = await res.json();
+    if (!files.length) return;
+    allImages = files;
+    imgQueue  = shuffle(allImages);
+    const first = imgQueue.pop();
+    bgA.src = first;
+    bgA.onload = () => bgA.classList.add('active');
+  } catch (_) {}
+}
+
+loadImageList();
+
+function applyMarquee(clip, inner) {
+  clip.classList.remove('scrolling');
+  inner.style.removeProperty('--marquee-offset');
+  requestAnimationFrame(() => {
+    const overflow = inner.scrollWidth - clip.clientWidth;
+    if (overflow > 2) {
+      inner.style.setProperty('--marquee-offset', \`-\${overflow}px\`);
+      clip.classList.add('scrolling');
+    }
+  });
+}
+
+function fmtTime(s) {
+  s = Math.max(0, Math.floor(s));
+  return Math.floor(s / 60) + ':' + (s % 60).toString().padStart(2, '0');
+}
+
+function updateUI({ artist, title, position, duration }) {
+  const isNewTrack = title !== lastTitle;
+  if (isNewTrack) {
+    elArtist.classList.add('fade-out');
+    elTrack.classList.add('fade-out');
+    setTimeout(() => {
+      elArtist.textContent = artist || '—';
+      elTrack.textContent  = title  || '—';
+      elArtist.classList.remove('fade-out');
+      elTrack.classList.remove('fade-out');
+      applyMarquee(artistClip, elArtist);
+      applyMarquee(trackClip,  elTrack);
+    }, 160);
+    nextImage();
+    lastTitle = title;
+  }
+  elTimer.textContent = fmtTime(position) + ' / ' + fmtTime(duration);
+  elFill.style.width  = duration > 0 ? Math.min(100, (position / duration) * 100) + '%' : '0%';
+  card.classList.add('visible');
+}
+
+async function fetchNowPlaying() {
+  try {
+    const res  = await fetch(CONFIG.ENDPOINT, { cache: 'no-store' });
+    const data = await res.json();
+    const item = data?.player?.activeItem;
+    if (!item || item.index < 0) { card.classList.remove('visible'); return; }
+    updateUI({
+      artist:   item.columns?.[0] || '—',
+      title:    item.columns?.[1] || '—',
+      position: parseFloat(item.position) || 0,
+      duration: parseFloat(item.duration) || 0,
+    });
+  } catch (_) { card.classList.remove('visible'); }
+}
+
+fetchNowPlaying();
+setInterval(fetchNowPlaying, CONFIG.POLL_MS);
+<\/script>
+</body>
+</html>`;
+}
+
+// ── Save button ────────────────────────────────────────────────
+document.getElementById('btn-save').addEventListener('click', () => {
+  const blob = new Blob([generateHTML()], { type: 'text/html' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'nowplaying-overlay.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ── Copy HTML button ───────────────────────────────────────────
+document.getElementById('btn-copy-html').addEventListener('click', () => {
+  navigator.clipboard.writeText(generateHTML()).then(() => {
+    const btn = document.getElementById('btn-copy-html');
+    btn.classList.add('success');
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+    setTimeout(() => {
+      btn.classList.remove('success');
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Copy HTML`;
+    }, 2000);
+  });
+});
+
+document.getElementById('preview-artist').addEventListener('input', e => {
+  mockArtist.textContent = e.target.value || 'Artist';
+  applyMockMarquee();
+});
+
+document.getElementById('preview-track').addEventListener('input', e => {
+  mockTrack.textContent = e.target.value || 'Track Title';
+  applyMockMarquee();
+});
+
+// ── Mock marquee ───────────────────────────────────────────────
+function applyMockMarquee() {
+  // artist
+  const aOverflow = mockArtist.scrollWidth - mockArtist.parentElement?.clientWidth || 0;
+  if (aOverflow > 2) {
+    mockArtist.style.setProperty('--marquee-offset', `-${aOverflow}px`);
+    mockArtist.classList.add('scrolling');
+  } else {
+    mockArtist.classList.remove('scrolling');
+    mockArtist.style.removeProperty('--marquee-offset');
+  }
+  // track
+  const tOverflow = mockTrack.scrollWidth - mockTrack.parentElement?.clientWidth || 0;
+  if (tOverflow > 2) {
+    mockTrack.style.setProperty('--marquee-offset', `-${tOverflow}px`);
+    mockTrack.classList.add('scrolling');
+  } else {
+    mockTrack.classList.remove('scrolling');
+    mockTrack.style.removeProperty('--marquee-offset');
+  }
+}
+
+
+applyToMock();
+updateOutput();
+requestAnimationFrame(applyMockMarquee);
+</script>
+</body>
+</html>
