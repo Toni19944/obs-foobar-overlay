@@ -630,6 +630,16 @@
         <div class="field-label">Scroll speed <span class="field-value" id="val-marquee">22s</span></div>
         <input type="range" id="marquee-speed" min="6" max="60" value="22" step="1">
       </div>
+
+      <div class="field">
+        <div class="field-label">Left fade <span class="field-value" id="val-fade-left">1%</span></div>
+        <input type="range" id="fade-left" min="0" max="15" value="1" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Right fade <span class="field-value" id="val-fade-right">1%</span></div>
+        <input type="range" id="fade-right" min="0" max="15" value="1" step="1">
+      </div>
     </div>
 
     <div class="section">
@@ -754,6 +764,8 @@ const state = {
   barFillOp:      50,
   barBgOp:        10,
   marqueeSpeed:   22,
+  fadeLeft:       1,
+  fadeRight:      1,
   pollMs:         1000,
 };
 
@@ -801,8 +813,11 @@ function applyToMock() {
   mockBarFill.style.background = `rgba(255,255,255,${s.barFillOp/100})`;
   mockBarBg.style.background   = `rgba(255,255,255,${s.barBgOp/100})`;
 
-  // Marquee speed on mock (just visual)
-  card.style.setProperty('--marquee-speed', s.marqueeSpeed + 's');
+  // Fade mask
+  const fl = s.fadeLeft, fr = s.fadeRight;
+  const mask = `linear-gradient(to right, transparent 0%, black ${fl}%, black ${100-fr}%, transparent 100%)`;
+  mockContent.style.webkitMaskImage = mask;
+  mockContent.style.maskImage = mask;
 
   updateOutput();
 }
@@ -838,6 +853,8 @@ bindRange('artist-shadow-op', 'artistShadowOp', 'val-artist-sh-op',  '%');
 bindRange('bar-fill-op',      'barFillOp',      'val-bar-fill-op',   '%');
 bindRange('bar-bg-op',        'barBgOp',        'val-bar-bg-op',     '%');
 bindRange('marquee-speed',    'marqueeSpeed',   'val-marquee',       's');
+bindRange('fade-left',        'fadeLeft',        'val-fade-left',     '%');
+bindRange('fade-right',       'fadeRight',       'val-fade-right',    '%');
 
 // Re-check marquee when width changes
 document.getElementById('card-width').addEventListener('input', () => {
@@ -935,7 +952,10 @@ function getCSSOutput() {
   text-shadow: 0 1px ${s.artistShadow}px rgba(0,0,0,${r(s.artistShadowOp/100)});
 
   /* .track */
-  text-shadow: 0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)});`;
+  text-shadow: 0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)});
+
+/* Edge fade — find mask-image in .content and replace: */
+  mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);`;
 }
 
 function getJSOutput() {
@@ -1058,8 +1078,8 @@ function generateHTML() {
     display: flex;
     flex-direction: column;
     gap: 7px;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);
   }
 
   .marquee-clip { overflow: hidden; width: 100%; }
