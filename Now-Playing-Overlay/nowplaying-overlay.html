@@ -7,38 +7,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  /* ─── VISUAL CONFIG ───────────────────────────────────────────
-     All the things you'd reasonably want to tweak are here.
-  ──────────────────────────────────────────────────────────────*/
   :root {
-    /* Card shape */
-    --card-bg:         rgba(10, 10, 14, 0.72);
+    --card-bg:         rgba(10, 10, 14, 0.66);
     --card-border:     rgba(255, 255, 255, 0.07);
-    --card-blur:       28px;
+    --card-blur:       22px;
     --card-radius:     20px;
     --card-padding-x:  28px;
     --card-padding-y:  18px;
-    --card-width:      340px;   /* fixed width — adjust to taste */
-
-    /* Background image treatment */
+    --card-width:      340px;
     --img-opacity:     0.22;
     --img-blur:        0px;
     --img-scale:       1.06;
-
-    /* Text */
     --color-artist:    rgba(255, 255, 255, 0.42);
     --color-track:     rgba(255, 255, 255, 0.92);
     --color-timer:     rgba(255, 255, 255, 0.35);
-
-    /* Progress bar */
-    --color-bar-bg:    rgba(255, 255, 255, 0.10);
-    --color-bar-fill:  rgba(255, 255, 255, 0.50);
-
-    /* Marquee */
-    --marquee-speed:   22s;     /* lower = faster scroll */
-    --marquee-pause:   2s;      /* how long it sits still at each end */
-
-    /* Fonts */
+    --color-bar-bg:    rgba(255, 255, 255, 0.17);
+    --color-bar-fill:  rgba(255, 255, 255, 0.57);
+    --marquee-speed:   22s;
     --font-artist: 'Syne', sans-serif;
     --font-track:  'DM Sans', sans-serif;
     --font-timer:  'DM Sans', sans-serif;
@@ -55,7 +40,6 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ─── CARD ───────────────────────────────────────────────── */
   .card {
     position: relative;
     overflow: hidden;
@@ -75,18 +59,9 @@
     transition: opacity 0.4s ease, transform 0.4s ease;
   }
 
-  .card.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  .card.visible { opacity: 1; transform: translateY(0); }
 
-  /* ─── BACKGROUND IMAGE LAYERS ───────────────────────────── */
-  .bg-layer {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-  }
+  .bg-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 
   .bg-img {
     position: absolute;
@@ -100,11 +75,8 @@
     transition: opacity 0.9s ease;
   }
 
-  .bg-img.active {
-    opacity: var(--img-opacity);
-  }
+  .bg-img.active { opacity: var(--img-opacity); }
 
-  /* ─── CONTENT ────────────────────────────────────────────── */
   .content {
     position: relative;
     z-index: 1;
@@ -113,38 +85,25 @@
     gap: 7px;
   }
 
-  /* ─── MARQUEE WRAPPER ────────────────────────────────────── */
-  .marquee-clip {
-    overflow: hidden;
-    width: 100%;
-  }
-
-  /* Fade only applied when text is actually scrolling */
+  .marquee-clip { overflow: hidden; width: 100%; }
   .marquee-clip.scrolling {
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
-    mask-image:         linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1%, black 98%, transparent 100%);
+    mask-image:         linear-gradient(to right, transparent 0%, black 1%, black 98%, transparent 100%);
   }
 
-  .marquee-clip .inner {
-    display: inline-block;
-    white-space: nowrap;
-  }
-
-  /* Back-and-forth animation — JS sets --marquee-offset on each element */
   @keyframes marquee-bounce {
-    0%                              { transform: translateX(0); }
-    10%                             { transform: translateX(0); }
-    45%                             { transform: translateX(var(--marquee-offset)); }
-    55%                             { transform: translateX(var(--marquee-offset)); }
-    90%                             { transform: translateX(0); }
-    100%                            { transform: translateX(0); }
+    0%   { transform: translateX(0); }
+    10%  { transform: translateX(0); }
+    45%  { transform: translateX(var(--marquee-offset)); }
+    55%  { transform: translateX(var(--marquee-offset)); }
+    90%  { transform: translateX(0); }
+    100% { transform: translateX(0); }
   }
 
   .marquee-clip.scrolling .inner {
     animation: marquee-bounce var(--marquee-speed) ease-in-out infinite;
   }
 
-  /* ─── ARTIST ─────────────────────────────────────────────── */
   .artist {
     font-family: var(--font-artist);
     font-size: 11px;
@@ -156,12 +115,7 @@
     transition: opacity 0.15s ease;
   }
 
-  /* ─── MIDDLE ROW ─────────────────────────────────────────── */
-  .middle-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .middle-row { display: flex; align-items: center; gap: 10px; }
 
   .progress-bar {
     flex: 1;
@@ -192,32 +146,26 @@
     text-shadow: 0 1px 4px rgba(0,0,0,0.6);
   }
 
-  /* ─── TRACK ──────────────────────────────────────────────── */
   .track {
     font-family: var(--font-track);
     font-size: 16px;
     font-weight: 500;
     color: var(--color-track);
+    white-space: nowrap;
     text-shadow: 0 1px 6px rgba(0,0,0,0.7);
     transition: opacity 0.15s ease;
   }
 
-  .fade-out {
-    opacity: 0 !important;
-  }
+  .fade-out { opacity: 0 !important; }
 </style>
 </head>
 <body>
 
 <div class="card" id="card">
-
-  <!-- Background image crossfade system (two layers, alternating) -->
   <div class="bg-layer">
     <img class="bg-img" id="bg-a" src="" alt="">
     <img class="bg-img" id="bg-b" src="" alt="">
   </div>
-
-  <!-- Text content -->
   <div class="content">
     <div class="marquee-clip" id="artist-clip">
       <div class="inner artist" id="artist">Artist</div>
@@ -232,42 +180,27 @@
       <div class="inner track" id="track">Track Title</div>
     </div>
   </div>
-
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-//  CONFIGURATION
-// ═══════════════════════════════════════════════════════════════
 const CONFIG = {
-  // Beefweb API endpoint — columns order must match: artist, title, length_seconds
   ENDPOINT: 'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
   POLL_MS:  1000,
-  DEMO_MODE: false,   // ← set to true to preview without foobar running
-
-  // ── BACKGROUND IMAGES ─────────────────────────────────────
-  //  Just drop images into the "bg" folder next to this file
-  //  and serve.bat — they'll be picked up automatically.
-  //  Supported formats: jpg, jpeg, png, webp, avif
-  //  Set to false to disable background images entirely.
-  //
-  IMAGES: true,
+  DEMO_MODE: false,
+  IMAGES: false,
 };
 
-// ── Elements ───────────────────────────────────────────────────
-const card       = document.getElementById('card');
-const elArtist   = document.getElementById('artist');
-const elTrack    = document.getElementById('track');
-const elTimer    = document.getElementById('timer');
-const elFill     = document.getElementById('progress-fill');
-const bgA        = document.getElementById('bg-a');
-const bgB        = document.getElementById('bg-b');
+const card     = document.getElementById('card');
+const elArtist = document.getElementById('artist');
+const elTrack  = document.getElementById('track');
+const elTimer  = document.getElementById('timer');
+const elFill   = document.getElementById('progress-fill');
+const bgA      = document.getElementById('bg-a');
+const bgB      = document.getElementById('bg-b');
 const artistClip = document.getElementById('artist-clip');
 const trackClip  = document.getElementById('track-clip');
 
-// ── Background image state ─────────────────────────────────────
-let imgQueue    = [];
-let activeLayer = 'a';
+let imgQueue = [], allImages = [], activeLayer = 'a', lastTitle = '';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -292,9 +225,6 @@ function nextImage() {
   };
 }
 
-// Auto-load image list from serve.bat's /bg-list endpoint
-let allImages = [];
-
 async function loadImageList() {
   if (!CONFIG.IMAGES) return;
   try {
@@ -303,7 +233,6 @@ async function loadImageList() {
     if (!files.length) return;
     allImages = files;
     imgQueue  = shuffle(allImages);
-    // Show first image immediately
     const first = imgQueue.pop();
     bgA.src = first;
     bgA.onload = () => bgA.classList.add('active');
@@ -312,12 +241,11 @@ async function loadImageList() {
 
 loadImageList();
 
-// ── Marquee ────────────────────────────────────────────────────
 function applyMarquee(clip, inner) {
-  // Reset first so measurement is accurate
   clip.classList.remove('scrolling');
   inner.style.removeProperty('--marquee-offset');
-
+  clip.style.webkitMaskImage = '';
+  clip.style.maskImage = '';
   requestAnimationFrame(() => {
     const overflow = inner.scrollWidth - clip.clientWidth;
     if (overflow > 2) {
@@ -327,23 +255,16 @@ function applyMarquee(clip, inner) {
   });
 }
 
-
 function fmtTime(s) {
   s = Math.max(0, Math.floor(s));
-  const m   = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2, '0')}`;
+  return Math.floor(s / 60) + ':' + (s % 60).toString().padStart(2, '0');
 }
-
-let lastTitle = '';
 
 function updateUI({ artist, title, position, duration }) {
   const isNewTrack = title !== lastTitle;
-
   if (isNewTrack) {
     elArtist.classList.add('fade-out');
     elTrack.classList.add('fade-out');
-
     setTimeout(() => {
       elArtist.textContent = artist || '—';
       elTrack.textContent  = title  || '—';
@@ -352,23 +273,14 @@ function updateUI({ artist, title, position, duration }) {
       applyMarquee(artistClip, elArtist);
       applyMarquee(trackClip,  elTrack);
     }, 160);
-
     nextImage();
     lastTitle = title;
   }
-
-  elTimer.textContent = `${fmtTime(position)} / ${fmtTime(duration)}`;
-  elFill.style.width  = duration > 0
-    ? `${Math.min(100, (position / duration) * 100)}%`
-    : '0%';
-
+  elTimer.textContent = fmtTime(position) + ' / ' + fmtTime(duration);
+  elFill.style.width  = duration > 0 ? Math.min(100, (position / duration) * 100) + '%' : '0%';
   card.classList.add('visible');
 }
 
-// ── Live fetch (Beefweb) ───────────────────────────────────────
-//  Beefweb response shape:
-//  { player: { activeItem: { columns: [artist, title, length_secs],
-//                            position: 42.1, duration: 217.0 } } }
 async function fetchNowPlaying() {
   try {
     const res  = await fetch(CONFIG.ENDPOINT, { cache: 'no-store' });
@@ -381,38 +293,11 @@ async function fetchNowPlaying() {
       position: parseFloat(item.position) || 0,
       duration: parseFloat(item.duration) || 0,
     });
-  } catch (_) {
-    card.classList.remove('visible');
-  }
+  } catch (_) { card.classList.remove('visible'); }
 }
 
-// ── Demo mode ──────────────────────────────────────────────────
-const DEMO_TRACKS = [
-  { artist: 'Floating Points', title: 'LesAlpx',        duration: 272 },
-  { artist: 'Burial',          title: 'Archangel',       duration: 196 },
-  { artist: 'Four Tet',        title: 'Angel Echoes',    duration: 263 },
-  { artist: 'Jon Hopkins',     title: 'Open Eye Signal', duration: 475 },
-];
-let demoIdx = 0, demoPos = 0;
-
-function runDemo() {
-  const t = DEMO_TRACKS[demoIdx];
-  updateUI({ artist: t.artist, title: t.title, position: demoPos, duration: t.duration });
-  demoPos++;
-  if (demoPos >= t.duration) {
-    demoPos = 0;
-    demoIdx = (demoIdx + 1) % DEMO_TRACKS.length;
-  }
-}
-
-// ── Boot ───────────────────────────────────────────────────────
-if (CONFIG.DEMO_MODE) {
-  runDemo();
-  setInterval(runDemo, CONFIG.POLL_MS);
-} else {
-  fetchNowPlaying();
-  setInterval(fetchNowPlaying, CONFIG.POLL_MS);
-}
+fetchNowPlaying();
+setInterval(fetchNowPlaying, CONFIG.POLL_MS);
 </script>
 </body>
 </html>
