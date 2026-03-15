@@ -488,6 +488,82 @@
   .num { color: #f78c6c; }
   .cm  { color: #546e7a; }
   .prop{ color: #82aaff; }
+
+  /* ── PROFILES ────────────────────────────────────────────── */
+  .profile-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .profile-row input[type=text] {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .profile-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .profile-item:hover { border-color: rgba(255,255,255,0.2); }
+  .profile-item.active-profile { border-color: var(--accent); }
+
+  .profile-name {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .profile-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .profile-btn:hover { color: var(--text); }
+  .profile-btn.del:hover { color: #f87171; }
+
+  .autosave-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .autosave-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -514,6 +590,28 @@
 
   <!-- ── SIDEBAR ─────────────────────────────────────────── -->
   <aside class="sidebar">
+
+    <div class="section">
+      <div class="section-title">Profiles</div>
+
+      <div class="profile-row">
+        <input type="text" id="profile-name-input" placeholder="Profile name…" maxlength="32">
+        <button class="btn" id="btn-save-profile" style="padding:7px 12px; font-size:12px;">Save</button>
+      </div>
+
+      <div class="profile-list" id="profile-list"></div>
+
+      <div class="autosave-note">
+        <div class="autosave-dot"></div>
+        Settings auto-saved between sessions
+      </div>
+
+      <div style="margin-top:10px;">
+        <button class="btn" id="btn-reset-defaults" style="width:100%; font-size:12px; color:rgba(255,255,255,0.45);">
+          Reset to defaults
+        </button>
+      </div>
+    </div>
 
     <div class="section">
       <div class="section-title">Card</div>
@@ -775,7 +873,134 @@ const state = {
   pollMs:         1000,
 };
 
-// ── Elements ───────────────────────────────────────────────────
+// ── Defaults (reference copy, never mutated) ───────────────────
+const DEFAULTS = Object.freeze({ ...state });
+
+// ── Profile storage ────────────────────────────────────────────
+const AUTOSAVE_KEY = 'nowplaying_autosave';
+const PROFILES_KEY = 'nowplaying_profiles';
+
+function saveAutosave() {
+  try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state)); } catch(_) {}
+}
+
+function loadAutosave() {
+  try {
+    const saved = localStorage.getItem(AUTOSAVE_KEY);
+    if (saved) Object.assign(state, JSON.parse(saved));
+  } catch(_) {}
+}
+
+function getProfiles() {
+  try { return JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}'); } catch(_) { return {}; }
+}
+
+function saveProfiles(profiles) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); } catch(_) {}
+}
+
+function syncAllInputs() {
+  // Sync every range/number input to current state
+  const map = {
+    'card-width': state.cardWidth, 'card-radius': state.cardRadius,
+    'card-blur': state.cardBlur, 'card-px': state.cardPx, 'card-py': state.cardPy,
+    'card-bg-op': state.cardBgOp, 'card-border-op': state.cardBorderOp,
+    'img-op': state.imgOp, 'img-blur': state.imgBlur,
+    'track-op': state.trackOp, 'artist-op': state.artistOp, 'timer-op': state.timerOp,
+    'track-shadow': state.trackShadow, 'track-shadow-op': state.trackShadowOp,
+    'artist-shadow': state.artistShadow, 'artist-shadow-op': state.artistShadowOp,
+    'bar-fill-op': state.barFillOp, 'bar-bg-op': state.barBgOp,
+    'marquee-speed': state.marqueeSpeed, 'fade-left': state.fadeLeft,
+    'fade-right': state.fadeRight, 'poll-ms': state.pollMs,
+  };
+  for (const [id, val] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  }
+  document.getElementById('images-enabled').checked = state.imagesEnabled;
+  // Sync all displayed values
+  document.getElementById('val-width').textContent       = state.cardWidth + 'px';
+  document.getElementById('val-radius').textContent      = state.cardRadius + 'px';
+  document.getElementById('val-blur').textContent        = state.cardBlur + 'px';
+  document.getElementById('val-px').textContent          = state.cardPx + 'px';
+  document.getElementById('val-py').textContent          = state.cardPy + 'px';
+  document.getElementById('val-bg-op').textContent       = state.cardBgOp + '%';
+  document.getElementById('val-border-op').textContent   = state.cardBorderOp + '%';
+  document.getElementById('val-img-op').textContent      = state.imgOp + '%';
+  document.getElementById('val-img-blur').textContent    = state.imgBlur + 'px';
+  document.getElementById('val-track-op').textContent    = state.trackOp + '%';
+  document.getElementById('val-artist-op').textContent   = state.artistOp + '%';
+  document.getElementById('val-timer-op').textContent    = state.timerOp + '%';
+  document.getElementById('val-track-sh').textContent    = state.trackShadow + 'px';
+  document.getElementById('val-track-sh-op').textContent = state.trackShadowOp + '%';
+  document.getElementById('val-artist-sh').textContent   = state.artistShadow + 'px';
+  document.getElementById('val-artist-sh-op').textContent= state.artistShadowOp + '%';
+  document.getElementById('val-bar-fill-op').textContent = state.barFillOp + '%';
+  document.getElementById('val-bar-bg-op').textContent   = state.barBgOp + '%';
+  document.getElementById('val-marquee').textContent     = state.marqueeSpeed + 's';
+  document.getElementById('val-fade-left').textContent   = state.fadeLeft + '%';
+  document.getElementById('val-fade-right').textContent  = state.fadeRight + '%';
+}
+
+function renderProfileList(activeProfileName) {
+  const profiles = getProfiles();
+  const list = document.getElementById('profile-list');
+  list.innerHTML = '';
+  const names = Object.keys(profiles);
+  if (!names.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 2px;">No saved profiles yet.</div>';
+    return;
+  }
+  names.forEach(name => {
+    const item = document.createElement('div');
+    item.className = 'profile-item' + (name === activeProfileName ? ' active-profile' : '');
+    item.innerHTML = `
+      <span class="profile-name" title="${name}">${name}</span>
+      <button class="profile-btn" data-action="load" data-name="${name}" title="Load">↩</button>
+      <button class="profile-btn del" data-action="delete" data-name="${name}" title="Delete">✕</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+// ── Profile events ─────────────────────────────────────────────
+document.getElementById('btn-save-profile').addEventListener('click', () => {
+  const name = document.getElementById('profile-name-input').value.trim();
+  if (!name) return;
+  const profiles = getProfiles();
+  profiles[name] = { ...state };
+  saveProfiles(profiles);
+  document.getElementById('profile-name-input').value = '';
+  renderProfileList(name);
+});
+
+document.getElementById('profile-list').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const name   = btn.dataset.name;
+  const action = btn.dataset.action;
+  const profiles = getProfiles();
+
+  if (action === 'load' && profiles[name]) {
+    Object.assign(state, profiles[name]);
+    syncAllInputs();
+    applyToMock();
+    renderProfileList(name);
+  } else if (action === 'delete') {
+    delete profiles[name];
+    saveProfiles(profiles);
+    renderProfileList();
+  }
+});
+
+document.getElementById('btn-reset-defaults').addEventListener('click', () => {
+  Object.assign(state, DEFAULTS);
+  syncAllInputs();
+  applyToMock();
+  renderProfileList();
+});
+
+
 const card       = document.getElementById('mock-card');
 const mockContent= document.getElementById('mock-content');
 const mockArtist = document.getElementById('mock-artist');
@@ -824,6 +1049,7 @@ function applyToMock() {
   applyMockMarquee();
 
   updateOutput();
+  saveAutosave();
 }
 
 // ── Bind all controls ──────────────────────────────────────────
@@ -1360,8 +1586,11 @@ function applyMockMarquee() {
 }
 
 
+loadAutosave();
+syncAllInputs();
 applyToMock();
 updateOutput();
+renderProfileList();
 requestAnimationFrame(applyMockMarquee);
 </script>
 </body>
