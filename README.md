@@ -93,6 +93,7 @@ A GUI configurator is included to make tweaking the overlay easy — no manual C
 
 The configurator also has **Copy CSS** and **Copy HTML** buttons if you'd rather paste the changes manually into an existing file.
 
+Configurator now also support saved profiles! And has a 'reset defaults' button just in case. It also now auto-saves the session so every time you freshly open the configurator it continues from the state it was in before closing.
 ---
 
 ### JavaScript (`CONFIG` block near the top of the HTML)
