@@ -571,6 +571,11 @@
 <header>
   <div class="logo">now playing <span>configurator</span></div>
   <div class="header-actions">
+    <button class="btn" id="btn-pull">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Pull from file
+    </button>
+    <input type="file" id="pull-file-input" accept=".html" style="display:none">
     <button class="btn" id="btn-copy">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
       Copy CSS
@@ -762,10 +767,81 @@
 
     <div class="section">
       <div class="section-title">Polling</div>
-
       <div class="field">
         <div class="field-label">Poll interval (ms)</div>
         <input type="number" id="poll-ms" value="1000" min="250" max="5000" step="250">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Visualizer</div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Enable visualizer</span>
+        <label class="toggle">
+          <input type="checkbox" id="vis-enabled" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Bar depth <span class="field-value" id="val-vis-depth">24px</span></div>
+        <input type="range" id="vis-depth" min="4" max="40" value="24" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Blur <span class="field-value" id="val-vis-blur">10px</span></div>
+        <input type="range" id="vis-blur" min="0" max="20" value="10" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Peak opacity <span class="field-value" id="val-vis-opacity">81%</span></div>
+        <input type="range" id="vis-opacity" min="10" max="100" value="81" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Bands <span class="field-value" id="val-vis-bands">63</span></div>
+        <input type="range" id="vis-bands" min="20" max="120" value="63" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Smoothing <span class="field-value" id="val-vis-smoothing">27%</span></div>
+        <input type="range" id="vis-smoothing" min="2" max="60" value="27" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Amplifier <span class="field-value" id="val-vis-amp">150×</span></div>
+        <input type="range" id="vis-amp" min="10" max="300" value="150" step="5">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Minimum glow <span class="field-value" id="val-vis-floor">0%</span></div>
+        <input type="range" id="vis-floor" min="0" max="50" value="0" step="1">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Shadow spread</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Adds a second stacked shadow for a glow/thicken effect</div>
+
+      <div class="field">
+        <div class="field-label">Track spread blur <span class="field-value" id="val-track-spread">0px</span></div>
+        <input type="range" id="track-spread" min="0" max="16" value="0" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Track spread opacity <span class="field-value" id="val-track-spread-op">90%</span></div>
+        <input type="range" id="track-spread-op" min="0" max="100" value="90" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Artist spread blur <span class="field-value" id="val-artist-spread">0px</span></div>
+        <input type="range" id="artist-spread" min="0" max="16" value="0" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Artist spread opacity <span class="field-value" id="val-artist-spread-op">90%</span></div>
+        <input type="range" id="artist-spread-op" min="0" max="100" value="90" step="1">
       </div>
     </div>
 
@@ -861,16 +937,28 @@ const state = {
   trackOp:        92,
   artistOp:       42,
   timerOp:        35,
-  trackShadow:    6,
-  trackShadowOp:  70,
-  artistShadow:   4,
-  artistShadowOp: 60,
-  barFillOp:      50,
-  barBgOp:        10,
+  trackShadow:    8,
+  trackShadowOp:  77,
+  artistShadow:   6,
+  artistShadowOp: 70,
+  barFillOp:      57,
+  barBgOp:        0,
   marqueeSpeed:   22,
   fadeLeft:       1,
-  fadeRight:      1,
+  fadeRight:      2,
   pollMs:         1000,
+  visEnabled:     true,
+  visDepth:       24,
+  visBlur:        10,
+  visOpacity:     81,
+  visBands:       63,
+  visSmoothing:   27,
+  visAmp:         150,
+  visFloor:       0,
+  trackSpread:    0,
+  trackSpreadOp:  90,
+  artistSpread:   0,
+  artistSpreadOp: 90,
 };
 
 // ── Defaults (reference copy, never mutated) ───────────────────
@@ -940,6 +1028,29 @@ function syncAllInputs() {
   document.getElementById('val-marquee').textContent     = state.marqueeSpeed + 's';
   document.getElementById('val-fade-left').textContent   = state.fadeLeft + '%';
   document.getElementById('val-fade-right').textContent  = state.fadeRight + '%';
+  document.getElementById('vis-enabled').checked         = state.visEnabled;
+  document.getElementById('vis-depth').value             = state.visDepth;
+  document.getElementById('val-vis-depth').textContent   = state.visDepth + 'px';
+  document.getElementById('vis-blur').value              = state.visBlur;
+  document.getElementById('val-vis-blur').textContent    = state.visBlur + 'px';
+  document.getElementById('vis-opacity').value           = state.visOpacity;
+  document.getElementById('val-vis-opacity').textContent = state.visOpacity + '%';
+  document.getElementById('vis-bands').value             = state.visBands;
+  document.getElementById('val-vis-bands').textContent   = state.visBands;
+  document.getElementById('vis-smoothing').value         = state.visSmoothing;
+  document.getElementById('val-vis-smoothing').textContent = state.visSmoothing + '%';
+  document.getElementById('vis-amp').value               = state.visAmp;
+  document.getElementById('val-vis-amp').textContent     = state.visAmp + '×';
+  document.getElementById('vis-floor').value             = state.visFloor;
+  document.getElementById('val-vis-floor').textContent   = state.visFloor + '%';
+  document.getElementById('track-spread').value          = state.trackSpread;
+  document.getElementById('val-track-spread').textContent= state.trackSpread + 'px';
+  document.getElementById('track-spread-op').value       = state.trackSpreadOp;
+  document.getElementById('val-track-spread-op').textContent = state.trackSpreadOp + '%';
+  document.getElementById('artist-spread').value         = state.artistSpread;
+  document.getElementById('val-artist-spread').textContent = state.artistSpread + 'px';
+  document.getElementById('artist-spread-op').value      = state.artistSpreadOp;
+  document.getElementById('val-artist-spread-op').textContent = state.artistSpreadOp + '%';
 }
 
 function renderProfileList(activeProfileName) {
@@ -1034,9 +1145,11 @@ function applyToMock() {
   mockTrack.style.color  = `rgba(255,255,255,${s.trackOp/100})`;
   mockTimer.style.color  = `rgba(255,255,255,${s.timerOp/100})`;
 
-  // Shadows
-  const tsh = `0 1px ${s.trackShadow}px rgba(0,0,0,${s.trackShadowOp/100})`;
-  const ash  = `0 1px ${s.artistShadow}px rgba(0,0,0,${s.artistShadowOp/100})`;
+  // Shadows with spread
+  const tSpread = s.trackSpread > 0  ? `, 0 0 ${s.trackSpread}px rgba(0,0,0,${s.trackSpreadOp/100})`  : '';
+  const aSpread = s.artistSpread > 0 ? `, 0 0 ${s.artistSpread}px rgba(0,0,0,${s.artistSpreadOp/100})` : '';
+  const tsh = `0 1px ${s.trackShadow}px rgba(0,0,0,${s.trackShadowOp/100})${tSpread}`;
+  const ash  = `0 1px ${s.artistShadow}px rgba(0,0,0,${s.artistShadowOp/100})${aSpread}`;
   mockTrack.style.textShadow  = tsh;
   mockArtist.style.textShadow = ash;
   mockTimer.style.textShadow  = ash;
@@ -1085,6 +1198,22 @@ bindRange('bar-bg-op',        'barBgOp',        'val-bar-bg-op',     '%');
 bindRange('marquee-speed',    'marqueeSpeed',   'val-marquee',       's');
 bindRange('fade-left',        'fadeLeft',        'val-fade-left',     '%');
 bindRange('fade-right',       'fadeRight',       'val-fade-right',    '%');
+bindRange('vis-depth',        'visDepth',        'val-vis-depth',     'px');
+bindRange('vis-blur',         'visBlur',         'val-vis-blur',      'px');
+bindRange('vis-opacity',      'visOpacity',      'val-vis-opacity',   '%');
+bindRange('vis-bands',        'visBands',        'val-vis-bands',     '');
+bindRange('vis-smoothing',    'visSmoothing',    'val-vis-smoothing', '%');
+bindRange('vis-amp',          'visAmp',          'val-vis-amp',       '×');
+bindRange('vis-floor',        'visFloor',        'val-vis-floor',     '%');
+bindRange('track-spread',     'trackSpread',     'val-track-spread',  'px');
+bindRange('track-spread-op',  'trackSpreadOp',   'val-track-spread-op','%');
+bindRange('artist-spread',    'artistSpread',    'val-artist-spread', 'px');
+bindRange('artist-spread-op', 'artistSpreadOp',  'val-artist-spread-op','%');
+
+document.getElementById('vis-enabled').addEventListener('change', e => {
+  state.visEnabled = e.target.checked;
+  updateOutput();
+});
 
 // Re-check marquee when width changes
 document.getElementById('card-width').addEventListener('input', () => {
@@ -1179,10 +1308,10 @@ function getCSSOutput() {
 /* Text shadows — find these in the CSS and replace: */
 
   /* .artist and .timer */
-  text-shadow: 0 1px ${s.artistShadow}px rgba(0,0,0,${r(s.artistShadowOp/100)});
+  text-shadow: 0 1px ${s.artistShadow}px rgba(0,0,0,${r(s.artistShadowOp/100)})${s.artistSpread > 0 ? `, 0 0 ${s.artistSpread}px rgba(0,0,0,${r(s.artistSpreadOp/100)})` : ''};
 
   /* .track */
-  text-shadow: 0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)});
+  text-shadow: 0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)})${s.trackSpread > 0 ? `, 0 0 ${s.trackSpread}px rgba(0,0,0,${r(s.trackSpreadOp/100)})` : ''};
 
 /* Edge fade — find mask-image in .content and replace: */
   mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);`;
@@ -1195,6 +1324,19 @@ function getJSOutput() {
     POLL_MS:   ${s.pollMs},
     DEMO_MODE: false,
     IMAGES:    ${s.imagesEnabled},
+
+    VISUALIZER:      ${s.visEnabled},
+    WS_PORT:         4455,
+    WS_PASSWORD:     'YOUR_PASSWORD_HERE',
+    WS_SOURCE:       'Your Audio Source',
+    VIS_COLOR:       '255, 255, 255',
+    VIS_MAX_OPACITY: ${r(s.visOpacity/100)},
+    VIS_BAR_DEPTH:   ${s.visDepth},
+    VIS_BLUR:        ${s.visBlur},
+    VIS_SMOOTHING:   ${r(s.visSmoothing/100)},
+    VIS_BANDS:       ${s.visBands},
+    VIS_AMPLIFIER:   ${s.visAmp},
+    VIS_FLOOR:       ${r(s.visFloor/100)},
   };`;
 }
 
@@ -1221,8 +1363,10 @@ document.getElementById('btn-copy').addEventListener('click', () => {
 // ── Generate full HTML ─────────────────────────────────────────
 function generateHTML() {
   const s = state;
-  const artistShadow = `0 1px ${s.artistShadow}px rgba(0,0,0,${r(s.artistShadowOp/100)})`;
-  const trackShadow  = `0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)})`;
+  const aSpreadStr = s.artistSpread > 0 ? `, 0 0 ${s.artistSpread}px rgba(0,0,0,${r(s.artistSpreadOp/100)})` : '';
+  const tSpreadStr = s.trackSpread  > 0 ? `, 0 0 ${s.trackSpread}px rgba(0,0,0,${r(s.trackSpreadOp/100)})`  : '';
+  const artistShadow = `0 1px ${s.artistShadow}px rgba(0,0,0,${r(s.artistShadowOp/100)})${aSpreadStr}`;
+  const trackShadow  = `0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)})${tSpreadStr}`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1263,6 +1407,21 @@ function generateHTML() {
     justify-content: flex-start;
     padding: 16px;
     -webkit-font-smoothing: antialiased;
+  }
+
+  .card-wrap {
+    position: relative;
+    border-radius: var(--card-radius);
+  }
+
+  #vis-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: var(--card-radius);
   }
 
   .card {
@@ -1387,35 +1546,50 @@ function generateHTML() {
 </head>
 <body>
 
-<div class="card" id="card">
-  <div class="bg-layer">
-    <img class="bg-img" id="bg-a" src="" alt="">
-    <img class="bg-img" id="bg-b" src="" alt="">
-  </div>
-  <div class="content">
-    <div class="marquee-clip" id="artist-clip">
-      <div class="inner artist" id="artist">Artist</div>
+<div class="card-wrap" id="card-wrap">
+  <canvas id="vis-canvas"></canvas>
+  <div class="card" id="card">
+    <div class="bg-layer">
+      <img class="bg-img" id="bg-a" src="" alt="">
+      <img class="bg-img" id="bg-b" src="" alt="">
     </div>
-    <div class="middle-row">
-      <div class="progress-bar">
-        <div class="progress-fill" id="progress-fill"></div>
+    <div class="content">
+      <div class="marquee-clip" id="artist-clip">
+        <div class="inner artist" id="artist">Artist</div>
       </div>
-      <div class="timer" id="timer">0:00 / 0:00</div>
-    </div>
-    <div class="marquee-clip" id="track-clip">
-      <div class="inner track" id="track">Track Title</div>
+      <div class="middle-row">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="timer" id="timer">0:00 / 0:00</div>
+      </div>
+      <div class="marquee-clip" id="track-clip">
+        <div class="inner track" id="track">Track Title</div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
 const CONFIG = {
-  ENDPOINT: 'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
-  POLL_MS:  ${s.pollMs},
+  ENDPOINT:  'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
+  POLL_MS:   ${s.pollMs},
   DEMO_MODE: false,
-  IMAGES: ${s.imagesEnabled},
+  IMAGES:    ${s.imagesEnabled},
+
+  VISUALIZER:        ${s.visEnabled},
+  WS_PORT:           4455,
+  WS_PASSWORD:       'YOUR_PASSWORD_HERE',
+  WS_SOURCE:         'Your Audio Source',
+  VIS_COLOR:         '255, 255, 255',
+  VIS_MAX_OPACITY:   ${r(s.visOpacity/100)},
+  VIS_BAR_DEPTH:     ${s.visDepth},
+  VIS_BLUR:          ${s.visBlur},
+  VIS_SMOOTHING:     ${r(s.visSmoothing/100)},
+  VIS_BANDS:         ${s.visBands},
 };
 
+const cardWrap  = document.getElementById('card-wrap');
 const card     = document.getElementById('card');
 const elArtist = document.getElementById('artist');
 const elTrack  = document.getElementById('track');
@@ -1524,6 +1698,100 @@ async function fetchNowPlaying() {
 
 fetchNowPlaying();
 setInterval(fetchNowPlaying, CONFIG.POLL_MS);
+
+function initVisualizer() {
+  if (!CONFIG.VISUALIZER) return;
+  const canvas = document.getElementById('vis-canvas');
+  const ctx    = canvas.getContext('2d');
+  const BANDS  = CONFIG.VIS_BANDS;
+  const bands  = Array.from({ length: BANDS }, (_, i) => ({
+    level:  0,
+    speed:  0.4 + Math.random() * 2.2,
+    phase:  Math.random() * Math.PI * 2,
+    weight: Math.pow(1 - i / BANDS, 1.5) * 0.7 + 0.3,
+  }));
+  let energy = 0, t = 0;
+  function resize() {
+    const wrap = document.getElementById('card-wrap');
+    canvas.width  = wrap.offsetWidth;
+    canvas.height = wrap.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  function draw() {
+    requestAnimationFrame(draw);
+    t += 0.016;
+    const W = canvas.width, H = canvas.height;
+    const R = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-radius')) || 20;
+    const depth = CONFIG.VIS_BAR_DEPTH;
+    ctx.clearRect(0, 0, W, H);
+    ctx.filter = \`blur(\${CONFIG.VIS_BLUR}px)\`;
+    for (let i = 0; i < BANDS; i++) {
+      const b = bands[i];
+      const sine    = (Math.sin(t * b.speed + b.phase) * 0.5 + 0.5);
+      const flutter = (Math.sin(t * b.speed * 3.1 + b.phase * 1.7) * 0.5 + 0.5) * 0.3;
+      const target  = energy * b.weight * (sine * 0.7 + flutter * 0.3);
+      b.level += (target - b.level) * (target > b.level ? CONFIG.VIS_SMOOTHING * 4 : CONFIG.VIS_SMOOTHING);
+    }
+    const straightW = W - 2*R, straightH = H - 2*R;
+    const perimeter = 2*straightW + 2*straightH + Math.PI*2*R;
+    const bandStep  = perimeter / BANDS;
+    const [cr,cg,cb] = CONFIG.VIS_COLOR.split(',').map(s => s.trim());
+    for (let i = 0; i < BANDS; i++) {
+      const b = bands[i];
+      if (b.level < 0.005) continue;
+      const dist = i * bandStep + bandStep * 0.5;
+      let x, y, nx, ny;
+      if (dist < straightW) { x=R+dist; y=0; nx=0; ny=1; }
+      else if (dist < straightW + Math.PI*0.5*R) { const a=(dist-straightW)/R; x=W-R+Math.sin(a)*R; y=R-Math.cos(a)*R; nx=-Math.sin(a); ny=-Math.cos(a); }
+      else if (dist < straightW + Math.PI*0.5*R + straightH) { const d=dist-straightW-Math.PI*0.5*R; x=W; y=R+d; nx=-1; ny=0; }
+      else if (dist < straightW + Math.PI*R + straightH) { const a=(dist-straightW-Math.PI*0.5*R-straightH)/R; x=W-R+Math.cos(a)*R; y=H-R+Math.sin(a)*R; nx=-Math.cos(a); ny=-Math.sin(a); }
+      else if (dist < 2*straightW + Math.PI*R + straightH) { const d=dist-straightW-Math.PI*R-straightH; x=W-R-d; y=H; nx=0; ny=-1; }
+      else if (dist < 2*straightW + Math.PI*1.5*R + straightH) { const a=(dist-2*straightW-Math.PI*R-straightH)/R; x=R-Math.sin(a)*R; y=H-R+Math.cos(a)*R; nx=Math.sin(a); ny=-Math.cos(a); }
+      else if (dist < 2*straightW + Math.PI*1.5*R + 2*straightH) { const d=dist-2*straightW-Math.PI*1.5*R-straightH; x=0; y=H-R-d; nx=1; ny=0; }
+      else { const a=(dist-2*straightW-Math.PI*1.5*R-2*straightH)/R; x=R-Math.cos(a)*R; y=R-Math.sin(a)*R; nx=Math.cos(a); ny=Math.sin(a); }
+      const barH=b.level*depth, alpha=b.level*CONFIG.VIS_MAX_OPACITY, barW=Math.max(3,bandStep*1.2);
+      const grad=ctx.createLinearGradient(x,y,x+nx*barH,y+ny*barH);
+      grad.addColorStop(0,   \`rgba(\${cr},\${cg},\${cb},\${alpha.toFixed(3)})\`);
+      grad.addColorStop(0.4, \`rgba(\${cr},\${cg},\${cb},\${(alpha*0.6).toFixed(3)})\`);
+      grad.addColorStop(1,   \`rgba(\${cr},\${cg},\${cb},0)\`);
+      ctx.beginPath(); ctx.strokeStyle=grad; ctx.lineWidth=barW; ctx.lineCap='round';
+      ctx.moveTo(x,y); ctx.lineTo(x+nx*barH,y+ny*barH); ctx.stroke();
+    }
+    ctx.filter = 'none';
+  }
+  draw();
+  function connect() {
+    const ws = new WebSocket(\`ws://localhost:\${CONFIG.WS_PORT}\`);
+    ws.onmessage = async (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.op === 0) {
+        const hello = msg.d; let authStr = '';
+        if (hello.authentication) {
+          const {challenge,salt} = hello.authentication;
+          const enc = new TextEncoder();
+          const h1  = await crypto.subtle.digest('SHA-256', enc.encode(CONFIG.WS_PASSWORD + salt));
+          const b64 = btoa(String.fromCharCode(...new Uint8Array(h1)));
+          const h2  = await crypto.subtle.digest('SHA-256', enc.encode(b64 + challenge));
+          authStr   = btoa(String.fromCharCode(...new Uint8Array(h2)));
+        }
+        ws.send(JSON.stringify({op:1,d:{rpcVersion:1,authentication:authStr,eventSubscriptions:511|65536}}));
+      }
+      if (msg.op === 5 && msg.d?.eventType === 'InputVolumeMeters') {
+        const input = (msg.d.eventData?.inputs||[]).find(i => i.inputName === CONFIG.WS_SOURCE);
+        if (!input) return;
+        let maxMul = 0;
+        for (const ch of (input.inputLevelsMul||[])) maxMul = Math.max(maxMul, ch[2]||0);
+        energy += (Math.min(1, maxMul * 150) - energy) * CONFIG.VIS_SMOOTHING;
+      }
+    };
+    ws.onclose = () => setTimeout(connect, 3000);
+    ws.onerror = () => {};
+  }
+  connect();
+}
+
+initVisualizer();
 <\/script>
 </body>
 </html>`;
@@ -1585,6 +1853,91 @@ function applyMockMarquee() {
   });
 }
 
+
+// ── Pull values from HTML file ─────────────────────────────────
+document.getElementById('btn-pull').addEventListener('click', () => {
+  document.getElementById('pull-file-input').click();
+});
+
+document.getElementById('pull-file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const html = ev.target.result;
+    const get  = (pattern, def) => {
+      const m = html.match(pattern);
+      return m ? parseFloat(m[1]) : def;
+    };
+    const getStr = (pattern, def) => {
+      const m = html.match(pattern);
+      return m ? m[1] : def;
+    };
+
+    // CSS variables
+    state.cardBgOp      = Math.round(get(/--card-bg:\s*rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/, 0.63) * 100);
+    state.cardBorderOp  = Math.round(get(/--card-border:\s*rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/, 0.13) * 100);
+    state.cardBlur      = get(/--card-blur:\s*([\d.]+)px/, 22);
+    state.cardRadius    = get(/--card-radius:\s*([\d.]+)px/, 20);
+    state.cardPx        = get(/--card-padding-x:\s*([\d.]+)px/, 28);
+    state.cardPy        = get(/--card-padding-y:\s*([\d.]+)px/, 18);
+    state.cardWidth     = get(/--card-width:\s*([\d.]+)px/, 340);
+    state.imgOp         = Math.round(get(/--img-opacity:\s*([\d.]+)/, 0.22) * 100);
+    state.imgBlur       = get(/--img-blur:\s*([\d.]+)px/, 0);
+    state.artistOp      = Math.round(get(/--color-artist:\s*rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/, 0.42) * 100);
+    state.trackOp       = Math.round(get(/--color-track:\s*rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/, 0.92) * 100);
+    state.timerOp       = Math.round(get(/--color-timer:\s*rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/, 0.35) * 100);
+    state.barBgOp       = Math.round(get(/--color-bar-bg:\s*rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/, 0.13) * 100);
+    state.barFillOp     = Math.round(get(/--color-bar-fill:\s*rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/, 0.57) * 100);
+    state.marqueeSpeed  = get(/--marquee-speed:\s*([\d.]+)s/, 22);
+
+    // Text shadows — handle both "0 2px 6px" and "0 0px 8px" formats
+    const artistSh = html.match(/\.artist\s*\{[^}]*text-shadow:\s*[\d.]+px?\s+([\d.]+)px\s+([\d.]+)px\s+rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/s);
+    if (artistSh) { state.artistShadow = parseFloat(artistSh[2]); state.artistShadowOp = Math.round(parseFloat(artistSh[3]) * 100); }
+
+    const trackSh = html.match(/\.track\s*\{[^}]*text-shadow:\s*[\d.]+px?\s+([\d.]+)px\s+([\d.]+)px\s+rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/s);
+    if (trackSh) { state.trackShadow = parseFloat(trackSh[2]); state.trackShadowOp = Math.round(parseFloat(trackSh[3]) * 100); }
+
+    // Shadow spread — second shadow in stacked text-shadow
+    const artistSpread = html.match(/\.artist\s*\{[^}]*text-shadow:[^;]*,\s*0\s+0\s+([\d.]+)px\s+rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/s);
+    if (artistSpread) { state.artistSpread = parseFloat(artistSpread[1]); state.artistSpreadOp = Math.round(parseFloat(artistSpread[2]) * 100); }
+
+    const trackSpread = html.match(/\.track\s*\{[^}]*text-shadow:[^;]*,\s*0\s+0\s+([\d.]+)px\s+rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/s);
+    if (trackSpread) { state.trackSpread = parseFloat(trackSpread[1]); state.trackSpreadOp = Math.round(parseFloat(trackSpread[2]) * 100); }
+
+    // Marquee mask fade
+    const fade = html.match(/mask-image:\s*linear-gradient\([^,]+,\s*transparent\s+0%,\s*black\s+([\d.]+)%,\s*black\s+([\d.]+)%/);
+    if (fade) { state.fadeLeft = parseFloat(fade[1]); state.fadeRight = 100 - parseFloat(fade[2]); }
+
+    // CONFIG values
+    state.pollMs        = get(/POLL_MS:\s*([\d]+)/, 1000);
+    state.imagesEnabled = /IMAGES:\s*true/.test(html);
+    state.visEnabled    = /VISUALIZER:\s*true/.test(html);
+    state.visDepth      = get(/VIS_BAR_DEPTH:\s*([\d]+)/, 24);
+    state.visBlur       = get(/VIS_BLUR:\s*([\d]+)/, 10);
+    state.visOpacity    = Math.round(get(/VIS_MAX_OPACITY:\s*([\d.]+)/, 0.81) * 100);
+    state.visBands      = get(/VIS_BANDS:\s*([\d]+)/, 63);
+    state.visSmoothing  = Math.round(get(/VIS_SMOOTHING:\s*([\d.]+)/, 0.27) * 100);
+    state.visAmp        = get(/maxMul \* ([\d]+)/, 150);
+
+    syncAllInputs();
+    applyToMock();
+    updateOutput();
+    renderProfileList();
+    requestAnimationFrame(applyMockMarquee);
+
+    const btn = document.getElementById('btn-pull');
+    btn.classList.add('success');
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Pulled!`;
+    setTimeout(() => {
+      btn.classList.remove('success');
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Pull from file`;
+    }, 2000);
+
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
 
 loadAutosave();
 syncAllInputs();
