@@ -334,6 +334,20 @@
   }
 
   /* ── MOCK CARD ───────────────────────────────────────────── */
+  #mock-wrap {
+    position: relative;
+  }
+
+  #mock-vis-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 20px; /* updated dynamically */
+  }
+
   #mock-card {
     position: relative;
     overflow: hidden;
@@ -845,6 +859,56 @@
       </div>
     </div>
 
+    <div class="section">
+      <div class="section-title">Spectrum server</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Settings for spectrum-server.py — use <b>Save spectrum config</b> to download a pre-configured copy.</div>
+
+      <div class="field">
+        <div class="field-label">Device name</div>
+        <input type="text" id="spec-device" value="Line 1" placeholder="Partial device name…">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Port <span class="field-value" id="val-spec-port">9001</span></div>
+        <input type="range" id="spec-port-range" min="1024" max="65535" value="9001" step="1">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Bands <span class="field-value" id="val-spec-bands">64</span></div>
+        <input type="range" id="spec-bands" min="16" max="128" value="64" step="4">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Chunk size <span class="field-value" id="val-spec-chunk">1024</span></div>
+        <input type="range" id="spec-chunk" min="256" max="4096" value="1024" step="256">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Smoothing <span class="field-value" id="val-spec-smoothing">50%</span></div>
+        <input type="range" id="spec-smoothing" min="0" max="95" value="50" step="5">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Gain <span class="field-value" id="val-spec-gain">8.0</span></div>
+        <input type="range" id="spec-gain" min="1" max="30" value="8" step="0.5">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Freq min <span class="field-value" id="val-spec-fmin">40 Hz</span></div>
+        <input type="range" id="spec-fmin" min="20" max="500" value="40" step="10">
+      </div>
+
+      <div class="field">
+        <div class="field-label">Freq max <span class="field-value" id="val-spec-fmax">16000 Hz</span></div>
+        <input type="range" id="spec-fmax" min="4000" max="22000" value="16000" step="500">
+      </div>
+
+      <button class="btn success" id="btn-save-spec" style="width:100%;margin-top:4px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Save spectrum config
+      </button>
+    </div>
+
   </aside>
 
   <!-- ── PREVIEW + OUTPUT ──────────────────────────────────── -->
@@ -886,18 +950,21 @@
 
     <div class="preview-canvas" id="preview-canvas">
       <!-- Mock card -->
-      <div id="mock-card">
-        <img id="mock-bg-a" src="" alt="">
-        <img id="mock-bg-b" src="" alt="">
-        <div class="mock-content" id="mock-content">
-          <div class="mock-marquee-clip" id="artist-clip"><div class="mock-artist" id="mock-artist">Floating Points</div></div>
-          <div class="mock-middle">
-            <div class="mock-bar-bg" id="mock-bar-bg">
-              <div class="mock-bar-fill" id="mock-bar-fill"></div>
+      <div id="mock-wrap">
+        <canvas id="mock-vis-canvas"></canvas>
+        <div id="mock-card">
+          <img id="mock-bg-a" src="" alt="">
+          <img id="mock-bg-b" src="" alt="">
+          <div class="mock-content" id="mock-content">
+            <div class="mock-marquee-clip" id="artist-clip"><div class="mock-artist" id="mock-artist">Floating Points</div></div>
+            <div class="mock-middle">
+              <div class="mock-bar-bg" id="mock-bar-bg">
+                <div class="mock-bar-fill" id="mock-bar-fill"></div>
+              </div>
+              <div class="mock-timer" id="mock-timer">1:27 / 4:32</div>
             </div>
-            <div class="mock-timer" id="mock-timer">1:27 / 4:32</div>
+            <div class="mock-marquee-clip" id="track-clip"><div class="mock-track" id="mock-track">LesAlpx</div></div>
           </div>
-          <div class="mock-marquee-clip" id="track-clip"><div class="mock-track" id="mock-track">LesAlpx</div></div>
         </div>
       </div>
     </div>
@@ -907,6 +974,7 @@
       <div class="output-tabs">
         <div class="output-tab active" data-tab="css">CSS variables</div>
         <div class="output-tab" data-tab="js">JS config</div>
+        <div class="output-tab" data-tab="spectrum">Spectrum config</div>
       </div>
       <div class="output-body">
         <div class="tab-content active" id="tab-css">
@@ -914,6 +982,9 @@
         </div>
         <div class="tab-content" id="tab-js">
           <pre id="out-js"></pre>
+        </div>
+        <div class="tab-content" id="tab-spectrum">
+          <pre id="out-spectrum"></pre>
         </div>
       </div>
     </div>
@@ -948,6 +1019,7 @@ const state = {
   fadeRight:      2,
   pollMs:         1000,
   visEnabled:     true,
+  visColor:       '255, 255, 255',
   visDepth:       24,
   visBlur:        10,
   visOpacity:     81,
@@ -959,6 +1031,14 @@ const state = {
   trackSpreadOp:  90,
   artistSpread:   0,
   artistSpreadOp: 90,
+  specPort:       9001,
+  specDevice:     'Line 1',
+  specBands:      64,
+  specChunk:      1024,
+  specSmoothing:  50,
+  specGain:       8.0,
+  specFreqMin:    40,
+  specFreqMax:    16000,
 };
 
 // ── Defaults (reference copy, never mutated) ───────────────────
@@ -1051,6 +1131,21 @@ function syncAllInputs() {
   document.getElementById('val-artist-spread').textContent = state.artistSpread + 'px';
   document.getElementById('artist-spread-op').value      = state.artistSpreadOp;
   document.getElementById('val-artist-spread-op').textContent = state.artistSpreadOp + '%';
+  document.getElementById('spec-device').value            = state.specDevice;
+  document.getElementById('spec-port-range').value        = state.specPort;
+  document.getElementById('val-spec-port').textContent    = state.specPort;
+  document.getElementById('spec-bands').value             = state.specBands;
+  document.getElementById('val-spec-bands').textContent   = state.specBands;
+  document.getElementById('spec-chunk').value             = state.specChunk;
+  document.getElementById('val-spec-chunk').textContent   = state.specChunk;
+  document.getElementById('spec-smoothing').value         = state.specSmoothing;
+  document.getElementById('val-spec-smoothing').textContent = state.specSmoothing + '%';
+  document.getElementById('spec-gain').value              = state.specGain;
+  document.getElementById('val-spec-gain').textContent    = state.specGain.toFixed(1);
+  document.getElementById('spec-fmin').value              = state.specFreqMin;
+  document.getElementById('val-spec-fmin').textContent    = state.specFreqMin + ' Hz';
+  document.getElementById('spec-fmax').value              = state.specFreqMax;
+  document.getElementById('val-spec-fmax').textContent    = state.specFreqMax + ' Hz';
 }
 
 function renderProfileList(activeProfileName) {
@@ -1113,6 +1208,8 @@ document.getElementById('btn-reset-defaults').addEventListener('click', () => {
 
 
 const card       = document.getElementById('mock-card');
+const mockWrap   = document.getElementById('mock-wrap');
+const mockVisCanvas = document.getElementById('mock-vis-canvas');
 const mockContent= document.getElementById('mock-content');
 const mockArtist = document.getElementById('mock-artist');
 const mockTrack  = document.getElementById('mock-track');
@@ -1130,6 +1227,8 @@ function applyToMock() {
   // Card
   card.style.width         = s.cardWidth + 'px';
   card.style.borderRadius  = s.cardRadius + 'px';
+  mockWrap.style.borderRadius = s.cardRadius + 'px';
+  mockVisCanvas.style.borderRadius = s.cardRadius + 'px';
   card.style.padding       = `${s.cardPy}px ${s.cardPx}px`;
   card.style.background    = `rgba(10,10,14,${s.cardBgOp/100})`;
   card.style.border        = `0.5px solid rgba(255,255,255,${s.cardBorderOp/100})`;
@@ -1209,6 +1308,19 @@ bindRange('track-spread',     'trackSpread',     'val-track-spread',  'px');
 bindRange('track-spread-op',  'trackSpreadOp',   'val-track-spread-op','%');
 bindRange('artist-spread',    'artistSpread',    'val-artist-spread', 'px');
 bindRange('artist-spread-op', 'artistSpreadOp',  'val-artist-spread-op','%');
+
+bindRange('spec-port-range',  'specPort',       'val-spec-port',     '', v => Math.round(v));
+bindRange('spec-bands',       'specBands',      'val-spec-bands',    '');
+bindRange('spec-chunk',       'specChunk',      'val-spec-chunk',    '');
+bindRange('spec-smoothing',   'specSmoothing',  'val-spec-smoothing','%');
+bindRange('spec-gain',        'specGain',       'val-spec-gain',     '', v => v.toFixed(1));
+bindRange('spec-fmin',        'specFreqMin',    'val-spec-fmin',     ' Hz');
+bindRange('spec-fmax',        'specFreqMax',    'val-spec-fmax',     ' Hz');
+
+document.getElementById('spec-device').addEventListener('input', e => {
+  state.specDevice = e.target.value;
+  updateOutput();
+});
 
 document.getElementById('vis-enabled').addEventListener('change', e => {
   state.visEnabled = e.target.checked;
@@ -1320,35 +1432,59 @@ function getCSSOutput() {
 function getJSOutput() {
   const s = state;
   return `  const CONFIG = {
-    ENDPOINT: 'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
-    POLL_MS:   ${s.pollMs},
-    DEMO_MODE: false,
-    IMAGES:    ${s.imagesEnabled},
+    ENDPOINT:       'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
+    POLL_MS:        ${s.pollMs},
+    DEMO_MODE:      false,
+    IMAGES:         ${s.imagesEnabled},
 
-    VISUALIZER:      ${s.visEnabled},
-    WS_PORT:         4455,
-    WS_PASSWORD:     'YOUR_PASSWORD_HERE',
-    WS_SOURCE:       'Your Audio Source',
-    VIS_COLOR:       '255, 255, 255',
-    VIS_MAX_OPACITY: ${r(s.visOpacity/100)},
-    VIS_BAR_DEPTH:   ${s.visDepth},
-    VIS_BLUR:        ${s.visBlur},
-    VIS_SMOOTHING:   ${r(s.visSmoothing/100)},
-    VIS_BANDS:       ${s.visBands},
-    VIS_AMPLIFIER:   ${s.visAmp},
-    VIS_FLOOR:       ${r(s.visFloor/100)},
+    VISUALIZER:     ${s.visEnabled},
+    SPECTRUM_PORT:  ${s.specPort},
+    VIS_COLOR:      '255, 255, 255',
+    VIS_MAX_OPACITY:${r(s.visOpacity/100)},
+    VIS_BAR_DEPTH:  ${s.visDepth},
+    VIS_BLUR:       ${s.visBlur},
+    VIS_SMOOTHING:  ${r(s.visSmoothing/100)},
+    VIS_BANDS:      ${s.visBands},
   };`;
 }
 
-function updateOutput() {
-  document.getElementById('out-css').textContent = getCSSOutput();
-  document.getElementById('out-js').textContent  = getJSOutput();
+function getSpectrumOutput() {
+  const s = state;
+  return `PORT        = ${s.specPort}
+DEVICE      = '${s.specDevice}'
+SAMPLE_RATE = 44100
+CHUNK       = ${s.specChunk}
+BANDS       = ${s.specBands}
+FPS         = 30
+SMOOTHING   = ${r(s.specSmoothing/100)}
+GAIN        = ${s.specGain.toFixed(1)}
+FREQ_MIN    = ${s.specFreqMin}
+FREQ_MAX    = ${s.specFreqMax}`;
 }
+
+function updateOutput() {
+  document.getElementById('out-css').textContent      = getCSSOutput();
+  document.getElementById('out-js').textContent       = getJSOutput();
+  document.getElementById('out-spectrum').textContent = getSpectrumOutput();
+  saveAutosave();
+}
+
+// ── Output tab switching ───────────────────────────────────────
+document.querySelectorAll('.output-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
 
 // ── Copy button ────────────────────────────────────────────────
 document.getElementById('btn-copy').addEventListener('click', () => {
   const activeTab = document.querySelector('.output-tab.active').dataset.tab;
-  const text = activeTab === 'css' ? getCSSOutput() : getJSOutput();
+  const text = activeTab === 'css' ? getCSSOutput()
+             : activeTab === 'js'  ? getJSOutput()
+             : getSpectrumOutput();
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('btn-copy');
     btn.classList.add('success');
@@ -1359,6 +1495,287 @@ document.getElementById('btn-copy').addEventListener('click', () => {
     }, 2000);
   });
 });
+
+// ── Save spectrum config button ────────────────────────────────
+document.getElementById('btn-save-spec').addEventListener('click', () => {
+  const s = state;
+  const py = `#!/usr/bin/env python3
+"""
+spectrum-server.py — auto-generated by configurator
+"""
+
+import argparse, asyncio, json, sys, threading
+import numpy as np
+import sounddevice as sd
+
+PORT        = ${() => state.specPort}
+DEVICE      = '${() => state.specDevice}'
+SAMPLE_RATE = 44100
+CHUNK       = ${() => state.specChunk}
+BANDS       = ${() => state.specBands}
+FPS         = 30
+SMOOTHING   = ${() => r(state.specSmoothing/100)}
+GAIN        = ${() => state.specGain.toFixed(1)}
+FREQ_MIN    = ${() => state.specFreqMin}
+FREQ_MAX    = ${() => state.specFreqMax}
+`;
+
+  // Build the full file by taking the template values
+  const specPy = generateSpectrumPy();
+  const blob = new Blob([specPy], { type: 'text/plain' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'spectrum-server.py';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+function generateSpectrumPy() {
+  const s = state;
+  return `#!/usr/bin/env python3
+"""
+spectrum-server.py
+Captures audio from a Windows audio device, computes FFT frequency bands,
+and streams them to connected WebSocket clients in real time.
+
+Requirements:
+    pip install sounddevice numpy scipy websockets
+
+Usage:
+    python spectrum-server.py
+    python spectrum-server.py --list   # list available devices
+"""
+
+import argparse
+import asyncio
+import json
+import sys
+import threading
+import numpy as np
+import sounddevice as sd
+
+# ═══════════════════════════════════════════════════════════════
+#  CONFIGURATION
+# ═══════════════════════════════════════════════════════════════
+
+PORT        = ${s.specPort}
+DEVICE      = '${s.specDevice}'
+SAMPLE_RATE = 44100
+CHUNK       = ${s.specChunk}
+BANDS       = ${s.specBands}
+FPS         = 30
+SMOOTHING   = ${r(s.specSmoothing/100)}
+GAIN        = ${s.specGain.toFixed(1)}
+FREQ_MIN    = ${s.specFreqMin}
+FREQ_MAX    = ${s.specFreqMax}
+
+# ═══════════════════════════════════════════════════════════════
+#  GLOBALS
+# ═══════════════════════════════════════════════════════════════
+
+band_levels  = [0.0] * BANDS
+clients      = set()
+lock         = threading.Lock()
+
+def find_device(name):
+    devices = sd.query_devices()
+    for i, d in enumerate(devices):
+        if d['max_input_channels'] > 0 and name.lower() in d['name'].lower():
+            return i, d['name']
+    return None, None
+
+def list_devices():
+    print("\\nAvailable input devices:")
+    print("─" * 50)
+    for i, d in enumerate(sd.query_devices()):
+        if d['max_input_channels'] > 0:
+            print(f"  [{i:2d}] {d['name']}")
+    print()
+
+def compute_bands(data):
+    if data.ndim > 1:
+        data = data.mean(axis=1)
+    window   = np.hanning(len(data))
+    windowed = data * window
+    fft_vals = np.abs(np.fft.rfft(windowed))
+    freqs    = np.fft.rfftfreq(len(windowed), d=1.0 / SAMPLE_RATE)
+    mask     = (freqs >= FREQ_MIN) & (freqs <= FREQ_MAX)
+    freqs    = freqs[mask]
+    fft_vals = fft_vals[mask]
+    if len(fft_vals) == 0:
+        return [0.0] * BANDS
+    log_min  = np.log10(FREQ_MIN)
+    log_max  = np.log10(FREQ_MAX)
+    edges    = np.logspace(log_min, log_max, BANDS + 1)
+    band_vals = []
+    for i in range(BANDS):
+        lo, hi = edges[i], edges[i + 1]
+        idx    = np.where((freqs >= lo) & (freqs < hi))[0]
+        if len(idx) > 0:
+            band_vals.append(float(np.mean(fft_vals[idx])))
+        else:
+            band_vals.append(0.0)
+    for i in range(len(band_vals)):
+        bass_boost = 1.0 + (1.0 - i / len(band_vals)) * 1.2
+        band_vals[i] *= bass_boost
+    band_vals = [min(1.0, v * GAIN) for v in band_vals]
+    return band_vals
+
+def audio_callback(indata, frames, time, status):
+    global band_levels
+    if status:
+        print(f"  Audio status: {status}", file=sys.stderr)
+    new_bands = compute_bands(indata)
+    with lock:
+        for i in range(BANDS):
+            band_levels[i] = band_levels[i] * SMOOTHING + new_bands[i] * (1 - SMOOTHING)
+
+async def handler(websocket):
+    clients.add(websocket)
+    print(f"  Client connected   ({len(clients)} total)")
+    try:
+        await websocket.wait_closed()
+    finally:
+        clients.discard(websocket)
+        print(f"  Client disconnected ({len(clients)} total)")
+
+async def broadcast_loop():
+    interval = 1.0 / FPS
+    while True:
+        await asyncio.sleep(interval)
+        if not clients:
+            continue
+        with lock:
+            payload = json.dumps([round(v, 4) for v in band_levels])
+        dead = set()
+        for ws in list(clients):
+            try:
+                await ws.send(payload)
+            except Exception:
+                dead.add(ws)
+        clients.difference_update(dead)
+
+async def main_async(device_index):
+    import websockets
+    print(f"\\n  Spectrum server starting on ws://localhost:{PORT}")
+    print(f"  Press Ctrl+C to stop\\n")
+    async with websockets.serve(handler, 'localhost', PORT):
+        await broadcast_loop()
+
+def main():
+    parser = argparse.ArgumentParser(description='Audio spectrum WebSocket server')
+    parser.add_argument('--device', type=str, default=DEVICE)
+    parser.add_argument('--list', action='store_true')
+    args = parser.parse_args()
+    if args.list:
+        list_devices()
+        return
+    device_index, device_name = find_device(args.device)
+    if device_index is None:
+        print(f"\\n  Device not found: '{args.device}'")
+        print("  Run with --list to see available devices.\\n")
+        sys.exit(1)
+    print(f"\\n  Device:  {device_name}  [{device_index}]")
+    print(f"  Bands:   {BANDS}")
+    print(f"  Rate:    {SAMPLE_RATE} Hz")
+    print(f"  Chunk:   {CHUNK} samples")
+    stream = sd.InputStream(
+        device=device_index,
+        channels=1,
+        samplerate=SAMPLE_RATE,
+        blocksize=CHUNK,
+        dtype='float32',
+        callback=audio_callback,
+    )
+    with stream:
+        asyncio.run(main_async(device_index))
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\\n  Stopped.")
+`;
+}
+
+// ── Mock visualizer ────────────────────────────────────────────
+(function initMockVisualizer() {
+  const visCanvas = mockVisCanvas;
+  const ctx       = visCanvas.getContext('2d');
+  const bands     = new Array(64).fill(0);
+  let rawBands    = new Array(64).fill(0);
+
+  function resizeMockVis() {
+    visCanvas.width  = mockWrap.offsetWidth  || card.offsetWidth;
+    visCanvas.height = mockWrap.offsetHeight || card.offsetHeight;
+  }
+  resizeMockVis();
+  new ResizeObserver(resizeMockVis).observe(card);
+
+  function drawMockVis() {
+    requestAnimationFrame(drawMockVis);
+    const s     = state;
+    const BANDS = s.visBands;
+    const W = visCanvas.width, H = visCanvas.height;
+    if (!W || !H) return;
+    const R = s.cardRadius || 20;
+
+    ctx.clearRect(0, 0, W, H);
+    if (!s.visEnabled) return;
+
+    ctx.filter = `blur(${s.visBlur}px)`;
+
+    for (let i = 0; i < BANDS; i++) {
+      const target = rawBands[i] || 0;
+      bands[i] = bands[i] + (target - bands[i]) * (target > bands[i] ? s.visSmoothing/100 * 4 : s.visSmoothing/100);
+    }
+
+    const straightW = W - 2*R, straightH = H - 2*R;
+    const perimeter = 2*straightW + 2*straightH + Math.PI*2*R;
+    const bandStep  = perimeter / BANDS;
+    const [cr,cg,cb] = (s.visColor || '255,255,255').split(',').map(v => v.trim());
+
+    for (let i = 0; i < BANDS; i++) {
+      if (bands[i] < 0.005) continue;
+      const dist = i * bandStep + bandStep * 0.5;
+      let x, y, nx, ny;
+      if (dist < straightW) { x=R+dist; y=0; nx=0; ny=1; }
+      else if (dist < straightW + Math.PI*0.5*R) { const a=(dist-straightW)/R; x=W-R+Math.sin(a)*R; y=R-Math.cos(a)*R; nx=-Math.sin(a); ny=-Math.cos(a); }
+      else if (dist < straightW + Math.PI*0.5*R + straightH) { const d=dist-straightW-Math.PI*0.5*R; x=W; y=R+d; nx=-1; ny=0; }
+      else if (dist < straightW + Math.PI*R + straightH) { const a=(dist-straightW-Math.PI*0.5*R-straightH)/R; x=W-R+Math.cos(a)*R; y=H-R+Math.sin(a)*R; nx=-Math.cos(a); ny=-Math.sin(a); }
+      else if (dist < 2*straightW + Math.PI*R + straightH) { const d=dist-straightW-Math.PI*R-straightH; x=W-R-d; y=H; nx=0; ny=-1; }
+      else if (dist < 2*straightW + Math.PI*1.5*R + straightH) { const a=(dist-2*straightW-Math.PI*R-straightH)/R; x=R-Math.sin(a)*R; y=H-R+Math.cos(a)*R; nx=Math.sin(a); ny=-Math.cos(a); }
+      else if (dist < 2*straightW + Math.PI*1.5*R + 2*straightH) { const d=dist-2*straightW-Math.PI*1.5*R-straightH; x=0; y=H-R-d; nx=1; ny=0; }
+      else { const a=(dist-2*straightW-Math.PI*1.5*R-2*straightH)/R; x=R-Math.cos(a)*R; y=R-Math.sin(a)*R; nx=Math.cos(a); ny=Math.sin(a); }
+
+      const barH  = bands[i] * (s.visDepth || 22);
+      const alpha = bands[i] * (s.visOpacity/100 || 0.81);
+      const barW  = Math.max(3, bandStep * 1.2);
+      const grad  = ctx.createLinearGradient(x, y, x+nx*barH, y+ny*barH);
+      grad.addColorStop(0,   `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`);
+      grad.addColorStop(0.4, `rgba(${cr},${cg},${cb},${(alpha*0.6).toFixed(3)})`);
+      grad.addColorStop(1,   `rgba(${cr},${cg},${cb},0)`);
+      ctx.beginPath(); ctx.strokeStyle=grad; ctx.lineWidth=barW; ctx.lineCap='round';
+      ctx.moveTo(x,y); ctx.lineTo(x+nx*barH,y+ny*barH); ctx.stroke();
+    }
+    ctx.filter = 'none';
+  }
+  drawMockVis();
+
+  // Connect to spectrum server for live preview
+  function connectMockVis() {
+    const ws = new WebSocket(`ws://localhost:${state.specPort}`);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (Array.isArray(data)) rawBands = data;
+      } catch(_) {}
+    };
+    ws.onclose = () => setTimeout(connectMockVis, 3000);
+    ws.onerror = () => {};
+  }
+  connectMockVis();
+})();
 
 // ── Generate full HTML ─────────────────────────────────────────
 function generateHTML() {
@@ -1578,9 +1995,7 @@ const CONFIG = {
   IMAGES:    ${s.imagesEnabled},
 
   VISUALIZER:        ${s.visEnabled},
-  WS_PORT:           4455,
-  WS_PASSWORD:       'YOUR_PASSWORD_HERE',
-  WS_SOURCE:         'Your Audio Source',
+  SPECTRUM_PORT:     9001,
   VIS_COLOR:         '255, 255, 255',
   VIS_MAX_OPACITY:   ${r(s.visOpacity/100)},
   VIS_BAR_DEPTH:     ${s.visDepth},
@@ -1704,13 +2119,8 @@ function initVisualizer() {
   const canvas = document.getElementById('vis-canvas');
   const ctx    = canvas.getContext('2d');
   const BANDS  = CONFIG.VIS_BANDS;
-  const bands  = Array.from({ length: BANDS }, (_, i) => ({
-    level:  0,
-    speed:  0.4 + Math.random() * 2.2,
-    phase:  Math.random() * Math.PI * 2,
-    weight: Math.pow(1 - i / BANDS, 1.5) * 0.7 + 0.3,
-  }));
-  let energy = 0, t = 0;
+  const bands  = new Array(BANDS).fill(0);
+  let rawBands = new Array(BANDS).fill(0);
   function resize() {
     const wrap = document.getElementById('card-wrap');
     canvas.width  = wrap.offsetWidth;
@@ -1720,26 +2130,21 @@ function initVisualizer() {
   window.addEventListener('resize', resize);
   function draw() {
     requestAnimationFrame(draw);
-    t += 0.016;
     const W = canvas.width, H = canvas.height;
     const R = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-radius')) || 20;
     const depth = CONFIG.VIS_BAR_DEPTH;
     ctx.clearRect(0, 0, W, H);
     ctx.filter = \`blur(\${CONFIG.VIS_BLUR}px)\`;
     for (let i = 0; i < BANDS; i++) {
-      const b = bands[i];
-      const sine    = (Math.sin(t * b.speed + b.phase) * 0.5 + 0.5);
-      const flutter = (Math.sin(t * b.speed * 3.1 + b.phase * 1.7) * 0.5 + 0.5) * 0.3;
-      const target  = energy * b.weight * (sine * 0.7 + flutter * 0.3);
-      b.level += (target - b.level) * (target > b.level ? CONFIG.VIS_SMOOTHING * 4 : CONFIG.VIS_SMOOTHING);
+      const target = rawBands[i] || 0;
+      bands[i] += (target - bands[i]) * (target > bands[i] ? CONFIG.VIS_SMOOTHING * 4 : CONFIG.VIS_SMOOTHING);
     }
     const straightW = W - 2*R, straightH = H - 2*R;
     const perimeter = 2*straightW + 2*straightH + Math.PI*2*R;
     const bandStep  = perimeter / BANDS;
     const [cr,cg,cb] = CONFIG.VIS_COLOR.split(',').map(s => s.trim());
     for (let i = 0; i < BANDS; i++) {
-      const b = bands[i];
-      if (b.level < 0.005) continue;
+      if (bands[i] < 0.005) continue;
       const dist = i * bandStep + bandStep * 0.5;
       let x, y, nx, ny;
       if (dist < straightW) { x=R+dist; y=0; nx=0; ny=1; }
@@ -1750,7 +2155,7 @@ function initVisualizer() {
       else if (dist < 2*straightW + Math.PI*1.5*R + straightH) { const a=(dist-2*straightW-Math.PI*R-straightH)/R; x=R-Math.sin(a)*R; y=H-R+Math.cos(a)*R; nx=Math.sin(a); ny=-Math.cos(a); }
       else if (dist < 2*straightW + Math.PI*1.5*R + 2*straightH) { const d=dist-2*straightW-Math.PI*1.5*R-straightH; x=0; y=H-R-d; nx=1; ny=0; }
       else { const a=(dist-2*straightW-Math.PI*1.5*R-2*straightH)/R; x=R-Math.cos(a)*R; y=R-Math.sin(a)*R; nx=Math.cos(a); ny=Math.sin(a); }
-      const barH=b.level*depth, alpha=b.level*CONFIG.VIS_MAX_OPACITY, barW=Math.max(3,bandStep*1.2);
+      const barH=bands[i]*depth, alpha=bands[i]*CONFIG.VIS_MAX_OPACITY, barW=Math.max(3,bandStep*1.2);
       const grad=ctx.createLinearGradient(x,y,x+nx*barH,y+ny*barH);
       grad.addColorStop(0,   \`rgba(\${cr},\${cg},\${cb},\${alpha.toFixed(3)})\`);
       grad.addColorStop(0.4, \`rgba(\${cr},\${cg},\${cb},\${(alpha*0.6).toFixed(3)})\`);
@@ -1762,28 +2167,18 @@ function initVisualizer() {
   }
   draw();
   function connect() {
-    const ws = new WebSocket(\`ws://localhost:\${CONFIG.WS_PORT}\`);
-    ws.onmessage = async (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.op === 0) {
-        const hello = msg.d; let authStr = '';
-        if (hello.authentication) {
-          const {challenge,salt} = hello.authentication;
-          const enc = new TextEncoder();
-          const h1  = await crypto.subtle.digest('SHA-256', enc.encode(CONFIG.WS_PASSWORD + salt));
-          const b64 = btoa(String.fromCharCode(...new Uint8Array(h1)));
-          const h2  = await crypto.subtle.digest('SHA-256', enc.encode(b64 + challenge));
-          authStr   = btoa(String.fromCharCode(...new Uint8Array(h2)));
+    const ws = new WebSocket(\`ws://localhost:\${CONFIG.SPECTRUM_PORT}\`);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (Array.isArray(data)) {
+          const src = data;
+          for (let i = 0; i < BANDS; i++) {
+            const idx = Math.floor(i * src.length / BANDS);
+            rawBands[i] = src[idx] || 0;
+          }
         }
-        ws.send(JSON.stringify({op:1,d:{rpcVersion:1,authentication:authStr,eventSubscriptions:511|65536}}));
-      }
-      if (msg.op === 5 && msg.d?.eventType === 'InputVolumeMeters') {
-        const input = (msg.d.eventData?.inputs||[]).find(i => i.inputName === CONFIG.WS_SOURCE);
-        if (!input) return;
-        let maxMul = 0;
-        for (const ch of (input.inputLevelsMul||[])) maxMul = Math.max(maxMul, ch[2]||0);
-        energy += (Math.min(1, maxMul * 150) - energy) * CONFIG.VIS_SMOOTHING;
-      }
+      } catch(_) {}
     };
     ws.onclose = () => setTimeout(connect, 3000);
     ws.onerror = () => {};

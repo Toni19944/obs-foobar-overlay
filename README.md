@@ -1,9 +1,8 @@
 # foobar2000 Now Playing Overlay
 
-A clean, minimal OBS browser source overlay that shows your currently playing track in foobar2000. Displays artist, track title, and a play timer inside a frosted-glass card. Optionally crossfades through a folder of background images on every track change.
+A clean, minimal OBS browser source overlay that shows your currently playing track in foobar2000. Displays artist, track title, and a play timer inside a frosted-glass card with a real-time audio spectrum visualizer on the border. Optionally crossfades through a folder of background images on every track change.
 
-![overlay preview](preview.png)  
-![overlay preview](preview.gif)
+![overlay preview](preview.png)
 
 ---
 
@@ -11,6 +10,15 @@ A clean, minimal OBS browser source overlay that shows your currently playing tr
 
 - [foobar2000](https://www.foobar2000.org/) (any recent version)
 - [Beefweb Remote Control](https://github.com/hyperblast/beefweb) — the foobar2000 component that exposes an HTTP API. Install it via foobar's component manager or grab the latest release from GitHub.
+- **Python 3.8+** — for the spectrum visualizer server (optional, see below)
+
+### Visualizer dependencies (optional)
+
+The border visualizer requires a small Python script that captures your audio and streams FFT data to the overlay. If you don't want the visualizer, skip this step and comment out the spectrum server line in `serve.bat`.
+
+```
+pip install sounddevice numpy scipy websockets
+```
 
 ---
 
@@ -29,24 +37,42 @@ Put everything in the same folder, wherever you like:
    nowplaying-overlay.html
    serve.bat
    overlay-server.ps1
+   spectrum-server.py
    📁 bg
       image1.jpg
       image2.jpg
       ...
 ```
-This folder structure is already correct inside the "Now-Playing-Overlay"-folder in the repo. So all you need to do is extract it wherever you want.
-The `bg` folder is optional — if it doesn't exist or is empty, the overlay just shows a plain dark card.
 
-### 3. Start the server
+The `bg` folder is optional. `spectrum-server.py` is only needed if you want the visualizer.
 
-Double-click `serve.bat`. A console window will open confirming it's running. Keep it open while streaming — minimising it is fine.
+### 3. Configure the spectrum server (optional)
 
-The server does two things: serves the HTML file to OBS, and proxies API requests to Beefweb. This sidesteps the browser's CORS restrictions that would otherwise block the overlay from talking to foobar.
+Open `spectrum-server.py` and set `DEVICE` to match your audio input device:
 
-> **Tip:** Create a shortcut to `serve.bat` in your Start Menu (`C:\Users\[you]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs`) so it's one search away before every stream.  
-> **Note:** The local server is the cleanest solution to OBS's CORS restrictions — every browser-based overlay that talks to a localhost API runs into the same wall and solves it the same way. Resource-wise it's negligible, lighter than a Discord notification, so it won't affect your stream performance at all.
+```python
+DEVICE = 'Line 1'  # partial name match is fine
+```
 
-### 4. OBS browser source
+Run `python spectrum-server.py --list` to see all available devices. You want the **capture** end of your VAC cable — the one that receives audio from foobar.
+
+If you don't want the visualizer, open `serve.bat` and comment out the spectrum server line:
+
+```bat
+@echo off
+REM start /min "Spectrum Server" python "%~dp0spectrum-server.py"
+start /min "Overlay Server" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0overlay-server.ps1"
+```
+
+Also set `VISUALIZER: false` in `nowplaying-overlay.html`.
+
+### 4. Start the servers
+
+Double-click `serve.bat`. Both servers launch minimized to the taskbar automatically.
+
+> **Tip:** Create a shortcut to `serve.bat` and prefix the target with `cmd /c` to enable pinning it to the Start Menu.
+
+### 5. OBS browser source
 
 Add a Browser Source in OBS and point it at:
 
@@ -86,15 +112,6 @@ Avoid heavily detailed photos (dense forests, city skylines at night) unless you
 ---
 
 ## Configuration
-
-A GUI configurator is included to make tweaking the overlay easy — no manual CSS editing required. Open `configurator.html` in any browser, adjust the sliders and settings, preview the result live, then hit **Save file** to download a ready-to-use `nowplaying-overlay.html` with your settings baked in.
-
-<img src="configurator-preview.png" width="800" alt="configurator preview">
-
-The configurator also has **Copy CSS** and **Copy HTML** buttons if you'd rather paste the changes manually into an existing file.
-
-Configurator now also support saved profiles! And has a 'reset defaults' button just in case. It also now auto-saves the session so every time you freshly open the configurator it continues from the state it was in before closing.
----
 
 ### JavaScript (`CONFIG` block near the top of the HTML)
 
@@ -154,22 +171,6 @@ The third value is the blur radius (how spread out the shadow is) and the last v
 | `--color-bar-bg` | `rgba(255,255,255,0.10)` | The unfilled portion of the progress bar. |
 | `--color-bar-fill` | `rgba(255,255,255,0.50)` | The filled portion. |
 
-#### Marquee scrolling
-
-Text that fits inside the card stays still. Text that overflows automatically pans to the end, pauses, then pans back — only the fields that need it scroll, independently of each other.
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--card-width` | `340px` | Fixed width of the card. Adjust this to fit your layout. |
-| `--marquee-speed` | `22s` | Total duration of one scroll cycle. Lower = faster. |
-
-The edge fade that softens text as it scrolls in and out is controlled by this line in the CSS:
-```css
-mask-image: linear-gradient(to right, transparent 0%, black 1%, black 99%, transparent 100%);
-```
-
-The first percentage pair (`0%, 1%`) controls the left fade, the second (`99%, 100%`) controls the right. Set both inner values to `0%` and `100%` respectively to remove the fade entirely.
-
 ---
 
 ## Behaviour notes
@@ -183,17 +184,82 @@ The first percentage pair (`0%, 1%`) controls the left fade, the second (`99%, 1
 
 ---
 
+## Visualizer
+
+The overlay includes a real-time audio spectrum visualizer — frequency bands drawn around the inside of the card border, driven by actual FFT data from your audio device. It looks like a soft, organic glow that reacts to individual frequency bands rather than just overall volume.
+
+### How it works
+
+A small Python script (`spectrum-server.py`) captures audio from your VAC cable, computes a real FFT using numpy/scipy, and streams 64 frequency bands over a local WebSocket to the overlay at ~30fps. The overlay draws them as blurred bars around the card border.
+
+### Requirements
+
+```
+pip install sounddevice numpy scipy websockets
+```
+
+### Setup
+
+1. Put `spectrum-server.py` in the same folder as `serve.bat`
+2. Open `spectrum-server.py` and set `DEVICE` to match your audio input device name (partial match is fine):
+   ```python
+   DEVICE = 'Line 1'
+   ```
+   Run `python spectrum-server.py --list` to see all available devices.
+3. Open `nowplaying-overlay.html` and make sure:
+   ```js
+   VISUALIZER:     true,
+   SPECTRUM_PORT:  9001,
+   ```
+4. `serve.bat` launches both servers automatically — no separate step needed.
+
+Set `VISUALIZER: false` to disable it entirely.
+
+### Spectrum server config
+
+Open `spectrum-server.py` and adjust these values at the top:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `PORT` | `9001` | WebSocket port the overlay connects to |
+| `DEVICE` | `'Line 1'` | Partial name of your audio input device |
+| `BANDS` | `64` | Number of frequency bands |
+| `CHUNK` | `1024` | Audio buffer size — smaller = snappier transient response |
+| `SMOOTHING` | `0.5` | Band smoothing — lower = more reactive |
+| `GAIN` | `6.0` | Amplification — increase if bars are too quiet |
+| `FREQ_MIN` | `40` | Lowest frequency to analyse (Hz) |
+| `FREQ_MAX` | `16000` | Highest frequency to analyse (Hz) |
+
+### Overlay visualizer config
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `VIS_COLOR` | `'255, 255, 255'` | RGB color of the bars |
+| `VIS_MAX_OPACITY` | `0.81` | Peak brightness of the bars |
+| `VIS_BAR_DEPTH` | `24` | How far bars reach inward from the border in px |
+| `VIS_BLUR` | `10` | Canvas blur — higher = more glow, lower = more defined bars |
+| `VIS_SMOOTHING` | `0.27` | Client-side smoothing — lower = snappier |
+| `VIS_BANDS` | `63` | Number of bands to display (resampled from server bands) |
+
+---
+
+## Configurator
+
+A visual GUI for tweaking all overlay settings without manually editing CSS is included as `configurator.html`. Open it in any browser, adjust sliders, preview live, then use **Save file** to download a ready-to-use overlay with your settings baked in. Includes a **Pull from file** button to import settings from an existing overlay HTML.
+
+> **Note:** The configurator does not cover visualizer settings — fill those in manually in the HTML after saving, and remember to fill in your `SPECTRUM_PORT`.
+
+![configurator preview](configurator-preview.png)
+
+---
+
 ## Ports
 
 | Port | Used for |
 |------|----------|
 | `8880` | Beefweb (foobar2000 API) |
 | `8081` | Overlay server (what OBS connects to) |
+| `9001` | Spectrum server (visualizer data) |
 
-If either port conflicts with something else on your machine, `8880` can be changed in Beefweb's preferences and `overlay-server.ps1`, and `8081` can be changed in both `overlay-server.ps1` and the `ENDPOINT` value in the HTML.
+If any port conflicts with something else on your machine, `8880` can be changed in Beefweb's preferences and `overlay-server.ps1`, `8081` in both `overlay-server.ps1` and the `ENDPOINT` in the HTML, and `9001` in both `spectrum-server.py` and `SPECTRUM_PORT` in the HTML.
 
----
-
-## Disclaimer
-
-This was coded/created with Claude AI (Sonnet 4.6). I know frick-all about programming/coding. Just figured to inform that instead of being all like "I made this" when in reality I mostly copy pasted code.
