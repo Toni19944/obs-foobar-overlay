@@ -641,6 +641,12 @@
       </div>
 
       <div class="field">
+        <div class="field-label">Height <span class="field-value" id="val-height">auto</span></div>
+        <input type="range" id="card-height" min="0" max="300" value="0" step="2">
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">0 = auto (fits content)</div>
+      </div>
+
+      <div class="field">
         <div class="field-label">Corner radius <span class="field-value" id="val-radius">20px</span></div>
         <input type="range" id="card-radius" min="0" max="60" value="20" step="1">
       </div>
@@ -996,6 +1002,8 @@
 // ── State ──────────────────────────────────────────────────────
 const state = {
   cardWidth:      340,
+  cardHeight:     0,    // 0 = auto
+  cardHeight:     0,   // 0 = auto
   cardRadius:     20,
   cardBlur:       28,
   cardPx:         28,
@@ -1088,6 +1096,10 @@ function syncAllInputs() {
   document.getElementById('images-enabled').checked = state.imagesEnabled;
   // Sync all displayed values
   document.getElementById('val-width').textContent       = state.cardWidth + 'px';
+  document.getElementById('card-height').value           = state.cardHeight;
+  document.getElementById('val-height').textContent      = state.cardHeight === 0 ? 'auto' : state.cardHeight + 'px';
+  document.getElementById('card-height').value           = state.cardHeight;
+  document.getElementById('val-height').textContent      = state.cardHeight > 0 ? state.cardHeight + 'px' : 'auto';
   document.getElementById('val-radius').textContent      = state.cardRadius + 'px';
   document.getElementById('val-blur').textContent        = state.cardBlur + 'px';
   document.getElementById('val-px').textContent          = state.cardPx + 'px';
@@ -1226,6 +1238,8 @@ function applyToMock() {
 
   // Card
   card.style.width         = s.cardWidth + 'px';
+  card.style.height        = s.cardHeight === 0 ? 'auto' : s.cardHeight + 'px';
+  card.style.height        = s.cardHeight > 0 ? s.cardHeight + 'px' : '';
   card.style.borderRadius  = s.cardRadius + 'px';
   mockWrap.style.borderRadius = s.cardRadius + 'px';
   mockVisCanvas.style.borderRadius = s.cardRadius + 'px';
@@ -1277,6 +1291,14 @@ function bindRange(id, key, valId, unit, transform) {
 }
 
 bindRange('card-width',       'cardWidth',      'val-width',         'px');
+bindRange('card-height',      'cardHeight',     'val-height',        '', v => v === 0 ? 'auto' : v + 'px');
+
+document.getElementById('card-height').addEventListener('input', e => {
+  state.cardHeight = parseInt(e.target.value);
+  document.getElementById('val-height').textContent = state.cardHeight > 0 ? state.cardHeight + 'px' : 'auto';
+  applyToMock();
+  updateOutput();
+});
 bindRange('card-radius',      'cardRadius',     'val-radius',        'px');
 bindRange('card-blur',        'cardBlur',       'val-blur',          'px');
 bindRange('card-px',          'cardPx',         'val-px',            'px');
@@ -1393,6 +1415,7 @@ function getCSSOutput() {
     --card-padding-x:  ${s.cardPx}px;
     --card-padding-y:  ${s.cardPy}px;
     --card-width:      ${s.cardWidth}px;
+    --card-height:     ${s.cardHeight > 0 ? s.cardHeight + 'px' : 'auto'};
 
     /* Background image treatment */
     --img-opacity:     ${r(s.imgOp/100)};
@@ -1801,6 +1824,7 @@ function generateHTML() {
     --card-padding-x:  ${s.cardPx}px;
     --card-padding-y:  ${s.cardPy}px;
     --card-width:      ${s.cardWidth}px;
+    --card-height:     ${s.cardHeight > 0 ? s.cardHeight + 'px' : 'auto'};
     --img-opacity:     ${r(s.imgOp/100)};
     --img-blur:        ${s.imgBlur}px;
     --img-scale:       1.06;
@@ -1851,6 +1875,7 @@ function generateHTML() {
     -webkit-backdrop-filter: blur(var(--card-blur));
     padding: var(--card-padding-y) var(--card-padding-x);
     width: var(--card-width);
+    height: var(--card-height);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -2277,6 +2302,9 @@ document.getElementById('pull-file-input').addEventListener('change', e => {
     state.cardPx        = get(/--card-padding-x:\s*([\d.]+)px/, 28);
     state.cardPy        = get(/--card-padding-y:\s*([\d.]+)px/, 18);
     state.cardWidth     = get(/--card-width:\s*([\d.]+)px/, 340);
+    state.cardHeight    = get(/--card-height:\s*([\d.]+)px/, 0);
+    const heightMatch   = html.match(/--card-height:\s*([\d.]+)px/);
+    state.cardHeight    = heightMatch ? parseFloat(heightMatch[1]) : 0;
     state.imgOp         = Math.round(get(/--img-opacity:\s*([\d.]+)/, 0.22) * 100);
     state.imgBlur       = get(/--img-blur:\s*([\d.]+)px/, 0);
     state.artistOp      = Math.round(get(/--color-artist:\s*rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/, 0.42) * 100);
