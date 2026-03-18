@@ -34,7 +34,7 @@ SAMPLE_RATE = 44100         # Hz — standard audio sample rate
 CHUNK       = 2048          # Samples per capture chunk
 BANDS       = 64            # Number of frequency bands to output
 FPS         = 30            # Target updates per second
-SMOOTHING   = 0.75          # 0–1 — higher = smoother/slower band response
+SMOOTHING   = 0.67          # 0–1 — higher = smoother/slower band response
 GAIN        = 8.0           # Amplification — increase if bands are too quiet
 
 # Frequency range to analyse (Hz)
@@ -110,6 +110,11 @@ def compute_bands(data):
             band_vals.append(float(np.mean(fft_vals[idx])))
         else:
             band_vals.append(0.0)
+
+    # Bass boost — low bands get up to 2.2x boost
+    for i in range(len(band_vals)):
+        bass_boost = 1.0 + (1.0 - i / len(band_vals)) * 1.2
+        band_vals[i] *= bass_boost
 
     # Normalise to 0–1 with gain — use absolute scale, not relative peak
     band_vals = [min(1.0, v * GAIN) for v in band_vals]

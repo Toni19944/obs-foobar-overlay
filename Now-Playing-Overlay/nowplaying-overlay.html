@@ -8,20 +8,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --card-bg:         rgba(10, 10, 14, 0.63);
+    --card-bg:         rgba(0, 0, 0, 0.97);
     --card-border:     rgba(255, 255, 255, 0.13);
     --card-blur:       22px;
     --card-radius:     20px;
     --card-padding-x:  28px;
     --card-padding-y:  18px;
     --card-width:      340px;
-    --img-opacity:     0.22;
-    --img-blur:        0px;
+    --img-opacity:     0.24;
+    --img-blur:        1px;
     --img-scale:       1.06;
     --color-artist:    rgba(255, 255, 255, 0.58);
     --color-track:     rgba(255, 255, 255, 0.69);
     --color-timer:     rgba(255, 255, 255, 0.45);
-    --color-bar-bg:    rgba(255, 255, 255, 0.09);
+    --color-bar-bg:    rgba(255, 255, 255, 0.00);
     --color-bar-fill:  rgba(255, 255, 255, 0.57);
     --marquee-speed:   22s;
     --font-artist: 'Syne', sans-serif;
@@ -131,6 +131,7 @@
     white-space: nowrap;
     text-shadow: 0 2px 6px rgba(0,0,0,0.7);
     transition: opacity 0.15s ease;
+    font-variant-numeric: lining-nums;
   }
 
   .middle-row { display: flex; align-items: center; gap: 10px; }
@@ -207,7 +208,7 @@
 
 <script>
 const CONFIG = {
-  ENDPOINT:  'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
+  ENDPOINT:  'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25,%25volume%25',
   POLL_MS:   1000,
   DEMO_MODE: false,
   IMAGES:    true,
@@ -217,18 +218,16 @@ const CONFIG = {
   //  drives the border visualizer with real FFT frequency data.
   //
   //  SETUP:
-  //  1. Run spectrum-server.py before launching OBS
-  //  2. WS_PORT and OBS WebSocket settings below are kept for
-  //     reference but the visualizer now uses SPECTRUM_PORT only
+  //  Run spectrum-server.py before launching OBS.
   //
   VISUALIZER:        true,
-  SPECTRUM_PORT:     9001,               // port spectrum-server.py runs on
+  SPECTRUM_PORT:     9001,
   VIS_COLOR:         '255, 255, 255',
-  VIS_MAX_OPACITY:   0.61,
-  VIS_BAR_DEPTH:     22,
+  VIS_MAX_OPACITY:   0.83,
+  VIS_BAR_DEPTH:     24,
   VIS_BLUR:          8,
-  VIS_SMOOTHING:     0.27,
-  VIS_BANDS:         62,
+  VIS_SMOOTHING:     0.25,
+  VIS_BANDS:         67,
 };
 
 // ── Elements ───────────────────────────────────────────────────
@@ -244,6 +243,7 @@ const artistClip= document.getElementById('artist-clip');
 const trackClip = document.getElementById('track-clip');
 
 let imgQueue = [], allImages = [], activeLayer = 'a', lastTitle = '';
+let visGain  = 1.0;  // dynamic gain multiplier derived from foobar volume
 
 // ── Images ─────────────────────────────────────────────────────
 function shuffle(arr) {
@@ -307,7 +307,7 @@ function fmtTime(s) {
 }
 
 // ── UI update ───────────────────────────────────────────────────
-function updateUI({ artist, title, position, duration }) {
+function updateUI({ artist, title, position, duration, volume }) {
   const isNewTrack = title !== lastTitle;
   if (isNewTrack) {
     elArtist.classList.add('fade-out');
@@ -326,6 +326,12 @@ function updateUI({ artist, title, position, duration }) {
   elTimer.textContent = fmtTime(position) + ' / ' + fmtTime(duration);
   elFill.style.width  = duration > 0 ? Math.min(100, (position / duration) * 100) + '%' : '0%';
   card.classList.add('visible');
+
+  // Dynamic visualizer gain — logarithmic dB compensation
+  // Reference point: -25dB = 1.0x, -40dB = ~5.6x, -10dB = ~0.18x
+  if (volume !== null && isFinite(volume) && volume < 0) {
+    visGain = Math.pow(10, ((-25) - volume) / 20);
+  }
 }
 
 // ── Fetch ───────────────────────────────────────────────────────
@@ -335,11 +341,14 @@ async function fetchNowPlaying() {
     const data = await res.json();
     const item = data?.player?.activeItem;
     if (!item || item.index < 0) { card.classList.remove('visible'); return; }
+    const volStr = item.columns?.[3] || '';
+    const volDb  = parseFloat(volStr);
     updateUI({
       artist:   item.columns?.[0] || '—',
       title:    item.columns?.[1] || '—',
       position: parseFloat(item.position) || 0,
       duration: parseFloat(item.duration) || 0,
+      volume:   isNaN(volDb) ? null : volDb,
     });
   } catch (_) { card.classList.remove('visible'); }
 }
@@ -463,11 +472,11 @@ function initVisualizer() {
       try {
         const data = JSON.parse(event.data);
         if (Array.isArray(data)) {
-          // Resample incoming bands to match VIS_BANDS if needed
           const src = data;
           for (let i = 0; i < BANDS; i++) {
             const idx = Math.floor(i * src.length / BANDS);
-            rawBands[i] = src[idx] || 0;
+            // Apply dynamic gain based on foobar volume (abs dB = gain)
+            rawBands[i] = Math.min(1, (src[idx] || 0) * visGain);
           }
         }
       } catch (_) {}
