@@ -8,17 +8,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --card-bg:         rgba(10, 10, 14, 0.63);
+    --card-bg:         rgba(0, 0, 0, 0.97);
     --card-border:     rgba(255, 255, 255, 0.13);
     --card-blur:       22px;
     --card-radius:     20px;
     --card-padding-x:  28px;
     --card-padding-y:  18px;
     --card-width:      340px;
-    --card-height:     auto;
-    --card-height:     auto;
-    --img-opacity:     0.22;
-    --img-blur:        0px;
+    --img-opacity:     0.24;
+    --img-blur:        1px;
     --img-scale:       1.06;
     --color-artist:    rgba(255, 255, 255, 0.58);
     --color-track:     rgba(255, 255, 255, 0.69);
@@ -69,7 +67,6 @@
     -webkit-backdrop-filter: blur(var(--card-blur));
     padding: var(--card-padding-y) var(--card-padding-x);
     width: var(--card-width);
-    height: var(--card-height);
     height: var(--card-height);
     flex-shrink: 0;
     display: flex;
@@ -212,7 +209,7 @@
 
 <script>
 const CONFIG = {
-  ENDPOINT:  'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25,%25volume%25',
+  ENDPOINT:  'http://localhost:8081/api/player?columns=%25artist%25,%25title%25,%25length_seconds%25',
   POLL_MS:   1000,
   DEMO_MODE: false,
   IMAGES:    true,
@@ -227,11 +224,11 @@ const CONFIG = {
   VISUALIZER:        true,
   SPECTRUM_PORT:     9001,
   VIS_COLOR:         '255, 255, 255',
-  VIS_MAX_OPACITY:   0.81,
+  VIS_MAX_OPACITY:   0.83,
   VIS_BAR_DEPTH:     24,
-  VIS_BLUR:          10,
-  VIS_SMOOTHING:     0.27,
-  VIS_BANDS:         63,
+  VIS_BLUR:          8,
+  VIS_SMOOTHING:     0.25,
+  VIS_BANDS:         67,
 };
 
 // ── Elements ───────────────────────────────────────────────────
@@ -345,14 +342,13 @@ async function fetchNowPlaying() {
     const data = await res.json();
     const item = data?.player?.activeItem;
     if (!item || item.index < 0) { card.classList.remove('visible'); return; }
-    const volStr = item.columns?.[3] || '';
-    const volDb  = parseFloat(volStr);
+    const volDb  = data?.player?.volume?.value ?? null;
     updateUI({
       artist:   item.columns?.[0] || '—',
       title:    item.columns?.[1] || '—',
       position: parseFloat(item.position) || 0,
       duration: parseFloat(item.duration) || 0,
-      volume:   isNaN(volDb) ? null : volDb,
+      volume:   volDb,
     });
   } catch (_) { card.classList.remove('visible'); }
 }
