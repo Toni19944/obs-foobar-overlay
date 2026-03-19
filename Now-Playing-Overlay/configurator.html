@@ -562,6 +562,24 @@
   .profile-btn:hover { color: var(--text); }
   .profile-btn.del:hover { color: #f87171; }
 
+  .mode-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .mode-btn:hover:not(.active) {
+    color: var(--text);
+  }
+
   .autosave-note {
     font-size: 11px;
     color: var(--muted);
@@ -585,6 +603,13 @@
 <header>
   <div class="logo">now playing <span>configurator</span></div>
   <div class="header-actions">
+    <div style="display:flex;align-items:center;gap:8px;margin-right:8px;padding-right:12px;border-right:0.5px solid rgba(255,255,255,0.1);">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Mode</span>
+      <div style="display:flex;border:0.5px solid rgba(255,255,255,0.15);border-radius:6px;overflow:hidden;">
+        <button id="mode-foobar" class="mode-btn active" onclick="setMode('foobar')">foobar2000</button>
+        <button id="mode-spotify" class="mode-btn" onclick="setMode('spotify')">Spotify</button>
+      </div>
+    </div>
     <button class="btn" id="btn-pull">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Pull from file
@@ -696,6 +721,33 @@
           <input type="checkbox" id="images-enabled" checked>
           <span class="toggle-track"></span>
         </label>
+      </div>
+
+      <!-- Spotify mode only -->
+      <div id="spotify-album-row" class="toggle-row" style="display:none;">
+        <span class="toggle-label">Album art as background</span>
+        <label class="toggle">
+          <input type="checkbox" id="album-art-enabled" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div id="spotify-images-row" class="toggle-row" style="display:none;">
+        <span class="toggle-label">bg/ folder images</span>
+        <label class="toggle">
+          <input type="checkbox" id="spotify-images-enabled">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Spotify VIS_GAIN — only shown in Spotify mode -->
+    <div id="spotify-gain-section" class="section" style="display:none;">
+      <div class="section-title">Visualizer gain</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Fixed gain — Spotify API does not expose playback volume.</div>
+      <div class="field">
+        <div class="field-label">VIS_GAIN <span class="field-value" id="val-vis-gain">1.0</span></div>
+        <input type="range" id="vis-gain" min="0.1" max="5" value="1.0" step="0.1">
       </div>
     </div>
 
@@ -1013,6 +1065,10 @@ const state = {
   imgOp:          22,
   imgBlur:        0,
   imagesEnabled:  true,
+  albumArtEnabled: true,
+  spotifyImagesEnabled: false,
+  visGain:        1.0,
+  mode:           'foobar',  // 'foobar' or 'spotify'
   trackOp:        92,
   artistOp:       42,
   timerOp:        35,
@@ -1158,6 +1214,10 @@ function syncAllInputs() {
   document.getElementById('val-spec-fmin').textContent    = state.specFreqMin + ' Hz';
   document.getElementById('spec-fmax').value              = state.specFreqMax;
   document.getElementById('val-spec-fmax').textContent    = state.specFreqMax + ' Hz';
+  document.getElementById('album-art-enabled').checked    = state.albumArtEnabled;
+  document.getElementById('spotify-images-enabled').checked = state.spotifyImagesEnabled;
+  document.getElementById('vis-gain').value               = state.visGain;
+  document.getElementById('val-vis-gain').textContent     = state.visGain.toFixed(1);
 }
 
 function renderProfileList(activeProfileName) {
@@ -1339,6 +1399,8 @@ bindRange('spec-gain',        'specGain',       'val-spec-gain',     '', v => v.
 bindRange('spec-fmin',        'specFreqMin',    'val-spec-fmin',     ' Hz');
 bindRange('spec-fmax',        'specFreqMax',    'val-spec-fmax',     ' Hz');
 
+bindRange('vis-gain',         'visGain',        'val-vis-gain',      '', v => v.toFixed(1));
+
 document.getElementById('spec-device').addEventListener('input', e => {
   state.specDevice = e.target.value;
   updateOutput();
@@ -1348,6 +1410,41 @@ document.getElementById('vis-enabled').addEventListener('change', e => {
   state.visEnabled = e.target.checked;
   updateOutput();
 });
+
+document.getElementById('album-art-enabled').addEventListener('change', e => {
+  state.albumArtEnabled = e.target.checked;
+  updateOutput();
+});
+
+document.getElementById('spotify-images-enabled').addEventListener('change', e => {
+  state.spotifyImagesEnabled = e.target.checked;
+  updateOutput();
+});
+
+// ── Mode switching ─────────────────────────────────────────────
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById('mode-foobar').classList.toggle('active', mode === 'foobar');
+  document.getElementById('mode-spotify').classList.toggle('active', mode === 'spotify');
+
+  // Toggle foobar-only elements
+  document.getElementById('images-enabled').closest('.toggle-row').style.display =
+    mode === 'foobar' ? '' : 'none';
+
+  // Toggle Spotify-only elements
+  document.getElementById('spotify-album-row').style.display =
+    mode === 'spotify' ? '' : 'none';
+  document.getElementById('spotify-images-row').style.display =
+    mode === 'spotify' ? '' : 'none';
+  document.getElementById('spotify-gain-section').style.display =
+    mode === 'spotify' ? '' : 'none';
+
+  // Update save button label
+  document.getElementById('btn-save').childNodes[1].textContent =
+    mode === 'spotify' ? ' Save Spotify file' : ' Save file';
+
+  updateOutput();
+}
 
 // Re-check marquee when width changes
 document.getElementById('card-width').addEventListener('input', () => {
@@ -2219,17 +2316,21 @@ initVisualizer();
 
 // ── Save button ────────────────────────────────────────────────
 document.getElementById('btn-save').addEventListener('click', () => {
-  const blob = new Blob([generateHTML()], { type: 'text/html' });
+  const isSpotify = state.mode === 'spotify';
+  const html      = isSpotify ? generateSpotifyHTML() : generateHTML();
+  const filename  = isSpotify ? 'nowplaying-spotify.html' : 'nowplaying-overlay.html';
+  const blob = new Blob([html], { type: 'text/html' });
   const a    = document.createElement('a');
   a.href     = URL.createObjectURL(blob);
-  a.download = 'nowplaying-overlay.html';
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
 });
 
 // ── Copy HTML button ───────────────────────────────────────────
 document.getElementById('btn-copy-html').addEventListener('click', () => {
-  navigator.clipboard.writeText(generateHTML()).then(() => {
+  const html = state.mode === 'spotify' ? generateSpotifyHTML() : generateHTML();
+  navigator.clipboard.writeText(html).then(() => {
     const btn = document.getElementById('btn-copy-html');
     btn.classList.add('success');
     btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
@@ -2361,6 +2462,139 @@ document.getElementById('pull-file-input').addEventListener('change', e => {
   };
   reader.readAsText(file);
 });
+
+// ── Generate Spotify HTML ──────────────────────────────────────
+function generateSpotifyHTML() {
+  const s = state;
+  const aSpreadStr = s.artistSpread > 0 ? `, 0 0 ${s.artistSpread}px rgba(0,0,0,${r(s.artistSpreadOp/100)})` : '';
+  const tSpreadStr = s.trackSpread  > 0 ? `, 0 0 ${s.trackSpread}px rgba(0,0,0,${r(s.trackSpreadOp/100)})`  : '';
+  const artistShadow = `0 1px ${s.artistShadow}px rgba(0,0,0,${r(s.artistShadowOp/100)})${aSpreadStr}`;
+  const trackShadow  = `0 1px ${s.trackShadow}px rgba(0,0,0,${r(s.trackShadowOp/100)})${tSpreadStr}`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Now Playing — Spotify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --card-bg:         rgba(10, 10, 14, ${r(s.cardBgOp/100)});
+    --card-border:     rgba(255, 255, 255, ${r(s.cardBorderOp/100)});
+    --card-blur:       ${s.cardBlur}px;
+    --card-radius:     ${s.cardRadius}px;
+    --card-padding-x:  ${s.cardPx}px;
+    --card-padding-y:  ${s.cardPy}px;
+    --card-width:      ${s.cardWidth}px;
+    --card-height:     ${s.cardHeight > 0 ? s.cardHeight + 'px' : 'auto'};
+    --img-opacity:     ${r(s.imgOp/100)};
+    --img-blur:        ${s.imgBlur}px;
+    --img-scale:       1.06;
+    --color-artist:    rgba(255, 255, 255, ${r(s.artistOp/100)});
+    --color-track:     rgba(255, 255, 255, ${r(s.trackOp/100)});
+    --color-timer:     rgba(255, 255, 255, ${r(s.timerOp/100)});
+    --color-bar-bg:    rgba(255, 255, 255, ${r(s.barBgOp/100)});
+    --color-bar-fill:  rgba(255, 255, 255, ${r(s.barFillOp/100)});
+    --marquee-speed:   ${s.marqueeSpeed}s;
+    --font-artist: 'Syne', sans-serif;
+    --font-track:  'DM Sans', sans-serif;
+    --font-timer:  'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; display: flex; align-items: flex-start; justify-content: flex-start; padding: 16px; -webkit-font-smoothing: antialiased; }
+
+  .card-wrap { position: relative; border-radius: var(--card-radius); }
+  #vis-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; border-radius: var(--card-radius); }
+
+  .card {
+    position: relative; overflow: hidden;
+    border-radius: var(--card-radius); border: 0.5px solid var(--card-border);
+    background: var(--card-bg); backdrop-filter: blur(var(--card-blur));
+    -webkit-backdrop-filter: blur(var(--card-blur));
+    padding: var(--card-padding-y) var(--card-padding-x);
+    width: var(--card-width); height: var(--card-height);
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 7px;
+    opacity: 0; transform: translateY(5px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .card.visible { opacity: 1; transform: translateY(0); }
+  .bg-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(var(--img-scale)); filter: blur(var(--img-blur)); opacity: 0; transition: opacity 0.9s ease; }
+  .bg-img.active { opacity: var(--img-opacity); }
+  .content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 7px; }
+  .marquee-clip { overflow: hidden; width: 100%; }
+  .marquee-clip.scrolling {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black ${s.fadeLeft}%, black ${100-s.fadeRight}%, transparent 100%);
+  }
+  @keyframes marquee-bounce {
+    0%,10% { transform: translateX(0); }
+    45%,55% { transform: translateX(var(--marquee-offset)); }
+    90%,100% { transform: translateX(0); }
+  }
+  .marquee-clip.scrolling .inner { animation: marquee-bounce var(--marquee-speed) ease-in-out infinite; }
+  .artist { font-family: var(--font-artist); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-artist); white-space: nowrap; text-shadow: ${artistShadow}; transition: opacity 0.15s ease; font-variant-numeric: lining-nums; }
+  .middle-row { display: flex; align-items: center; gap: 10px; }
+  .progress-bar { flex: 1; height: 2px; background: var(--color-bar-bg); border-radius: 2px; overflow: hidden; margin-left: auto; }
+  .progress-fill { height: 100%; width: 0%; background: var(--color-bar-fill); border-radius: 2px; transition: width 1s linear; }
+  .timer { font-family: var(--font-timer); font-size: 11px; font-weight: 300; letter-spacing: 0.05em; color: var(--color-timer); font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; text-shadow: ${artistShadow}; }
+  .track { font-family: var(--font-track); font-size: 16px; font-weight: 500; color: var(--color-track); white-space: nowrap; text-shadow: ${trackShadow}; transition: opacity 0.15s ease; }
+  .fade-out { opacity: 0 !important; }
+</style>
+</head>
+<body>
+<div class="card-wrap" id="card-wrap">
+  <canvas id="vis-canvas"></canvas>
+  <div class="card" id="card">
+    <div class="bg-layer">
+      <img class="bg-img" id="bg-a" src="" alt="">
+      <img class="bg-img" id="bg-b" src="" alt="">
+    </div>
+    <div class="content">
+      <div class="marquee-clip" id="artist-clip"><div class="inner artist" id="artist">Artist</div></div>
+      <div class="middle-row">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="timer" id="timer">0:00 / 0:00</div>
+      </div>
+      <div class="marquee-clip" id="track-clip"><div class="inner track" id="track">Track Title</div></div>
+    </div>
+  </div>
+</div>
+<script>
+const CONFIG = {
+  ENDPOINT:     'http://localhost:8081/api/spotify/current',
+  POLL_MS:      ${s.pollMs},
+  DEMO_MODE:    false,
+  ALBUM_ART_BG: ${s.albumArtEnabled},
+  IMAGES:       ${s.spotifyImagesEnabled},
+  VISUALIZER:        ${s.visEnabled},
+  SPECTRUM_PORT:     ${s.specPort},
+  VIS_COLOR:         '255, 255, 255',
+  VIS_MAX_OPACITY:   ${r(s.visOpacity/100)},
+  VIS_BAR_DEPTH:     ${s.visDepth},
+  VIS_BLUR:          ${s.visBlur},
+  VIS_SMOOTHING:     ${r(s.visSmoothing/100)},
+  VIS_BANDS:         ${s.visBands},
+  VIS_GAIN:          ${s.visGain.toFixed(1)},
+};
+const cardWrap=document.getElementById('card-wrap'),card=document.getElementById('card'),elArtist=document.getElementById('artist'),elTrack=document.getElementById('track'),elTimer=document.getElementById('timer'),elFill=document.getElementById('progress-fill'),bgA=document.getElementById('bg-a'),bgB=document.getElementById('bg-b'),artistClip=document.getElementById('artist-clip'),trackClip=document.getElementById('track-clip');
+let lastTrackId='',activeLayer='a',lastProgressMs=0,lastProgressAt=0,isPlaying=false;
+function setAlbumArt(url){if(!CONFIG.ALBUM_ART_BG||!url)return;const i=activeLayer==='a'?bgB:bgA,o=activeLayer==='a'?bgA:bgB;i.src=url;i.onload=()=>{i.classList.add('active');o.classList.remove('active');activeLayer=activeLayer==='a'?'b':'a'};}
+function applyMarquee(clip,inner){clip.classList.remove('scrolling');inner.style.removeProperty('--marquee-offset');clip.style.webkitMaskImage='';clip.style.maskImage='';requestAnimationFrame(()=>{const o=inner.scrollWidth-clip.clientWidth;if(o>2){inner.style.setProperty('--marquee-offset',\`-\${o}px\`);clip.classList.add('scrolling');}});}
+function fmtTime(ms){const s=Math.max(0,Math.floor(ms/1000)),m=Math.floor(s/60),sec=s%60;return\`\${m}:\${sec.toString().padStart(2,'0')}\`;}
+function updateUI({trackId,artist,title,artUrl,progressMs,durationMs,playing}){const n=trackId!==lastTrackId;if(n){elArtist.classList.add('fade-out');elTrack.classList.add('fade-out');setTimeout(()=>{elArtist.textContent=artist||'—';elTrack.textContent=title||'—';elArtist.classList.remove('fade-out');elTrack.classList.remove('fade-out');applyMarquee(artistClip,elArtist);applyMarquee(trackClip,elTrack);},160);setAlbumArt(artUrl);lastTrackId=trackId;}lastProgressMs=progressMs;lastProgressAt=Date.now();isPlaying=playing;elFill.style.width=durationMs>0?\`\${Math.min(100,(progressMs/durationMs)*100)}%\`:'0%';elTimer.textContent=\`\${fmtTime(progressMs)} / \${fmtTime(durationMs)}\`;card.classList.add('visible');}
+function tickTimer(){if(!isPlaying||!lastProgressAt)return;elTimer.textContent=fmtTime(lastProgressMs+Date.now()-lastProgressAt)+' / '+elTimer.textContent.split(' / ')[1];}
+setInterval(tickTimer,250);
+async function fetchNowPlaying(){try{const res=await fetch(CONFIG.ENDPOINT,{cache:'no-store'}),data=await res.json();if(!data.is_playing&&!data.item){card.classList.remove('visible');isPlaying=false;return;}const item=data.item;updateUI({trackId:item.id,artist:item.artists?.map(a=>a.name).join(', ')||'—',title:item.name||'—',artUrl:item.album?.images?.[0]?.url||'',progressMs:data.progress_ms||0,durationMs:item.duration_ms||0,playing:data.is_playing});}catch(_){card.classList.remove('visible');isPlaying=false;}}
+fetchNowPlaying();setInterval(fetchNowPlaying,CONFIG.POLL_MS);
+function initVisualizer(){if(!CONFIG.VISUALIZER)return;const canvas=document.getElementById('vis-canvas'),ctx=canvas.getContext('2d'),BANDS=CONFIG.VIS_BANDS,bands=new Array(BANDS).fill(0);window._rawBands=new Array(BANDS).fill(0);const rawBands=window._rawBands;function resize(){const w=document.getElementById('card-wrap');canvas.width=w.offsetWidth;canvas.height=w.offsetHeight;}resize();window.addEventListener('resize',resize);function draw(){requestAnimationFrame(draw);const W=canvas.width,H=canvas.height,R=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-radius'))||20,depth=CONFIG.VIS_BAR_DEPTH;ctx.clearRect(0,0,W,H);ctx.filter=\`blur(\${CONFIG.VIS_BLUR}px)\`;for(let i=0;i<BANDS;i++){const t=rawBands[i]||0;bands[i]+=(t-bands[i])*(t>bands[i]?CONFIG.VIS_SMOOTHING*4:CONFIG.VIS_SMOOTHING);}const sW=W-2*R,sH=H-2*R,peri=2*sW+2*sH+Math.PI*2*R,step=peri/BANDS,[cr,cg,cb]=CONFIG.VIS_COLOR.split(',').map(s=>s.trim());for(let i=0;i<BANDS;i++){if(bands[i]<0.005)continue;const dist=i*step+step*0.5;let x,y,nx,ny;if(dist<sW){x=R+dist;y=0;nx=0;ny=1;}else if(dist<sW+Math.PI*0.5*R){const a=(dist-sW)/R;x=W-R+Math.sin(a)*R;y=R-Math.cos(a)*R;nx=-Math.sin(a);ny=-Math.cos(a);}else if(dist<sW+Math.PI*0.5*R+sH){const d=dist-sW-Math.PI*0.5*R;x=W;y=R+d;nx=-1;ny=0;}else if(dist<sW+Math.PI*R+sH){const a=(dist-sW-Math.PI*0.5*R-sH)/R;x=W-R+Math.cos(a)*R;y=H-R+Math.sin(a)*R;nx=-Math.cos(a);ny=-Math.sin(a);}else if(dist<2*sW+Math.PI*R+sH){const d=dist-sW-Math.PI*R-sH;x=W-R-d;y=H;nx=0;ny=-1;}else if(dist<2*sW+Math.PI*1.5*R+sH){const a=(dist-2*sW-Math.PI*R-sH)/R;x=R-Math.sin(a)*R;y=H-R+Math.cos(a)*R;nx=Math.sin(a);ny=-Math.cos(a);}else if(dist<2*sW+Math.PI*1.5*R+2*sH){const d=dist-2*sW-Math.PI*1.5*R-sH;x=0;y=H-R-d;nx=1;ny=0;}else{const a=(dist-2*sW-Math.PI*1.5*R-2*sH)/R;x=R-Math.cos(a)*R;y=R-Math.sin(a)*R;nx=Math.cos(a);ny=Math.sin(a);}const bH=bands[i]*depth,alpha=bands[i]*CONFIG.VIS_MAX_OPACITY,bW=Math.max(3,step*1.2),g=ctx.createLinearGradient(x,y,x+nx*bH,y+ny*bH);g.addColorStop(0,\`rgba(\${cr},\${cg},\${cb},\${alpha.toFixed(3)})\`);g.addColorStop(0.4,\`rgba(\${cr},\${cg},\${cb},\${(alpha*0.6).toFixed(3)})\`);g.addColorStop(1,\`rgba(\${cr},\${cg},\${cb},0)\`);ctx.beginPath();ctx.strokeStyle=g;ctx.lineWidth=bW;ctx.lineCap='round';ctx.moveTo(x,y);ctx.lineTo(x+nx*bH,y+ny*bH);ctx.stroke();}ctx.filter='none';}draw();function connect(){const ws=new WebSocket(\`ws://localhost:\${CONFIG.SPECTRUM_PORT}\`);ws.onmessage=(e)=>{try{const d=JSON.parse(e.data);if(Array.isArray(d)){for(let i=0;i<BANDS;i++){const idx=Math.floor(i*d.length/BANDS);rawBands[i]=Math.min(1,(d[idx]||0)*CONFIG.VIS_GAIN);}}}catch(_){}};ws.onclose=()=>setTimeout(connect,3000);ws.onerror=()=>{};}connect();}
+initVisualizer();
+<\/script>
+</body>
+</html>`;
+}
 
 loadAutosave();
 syncAllInputs();
