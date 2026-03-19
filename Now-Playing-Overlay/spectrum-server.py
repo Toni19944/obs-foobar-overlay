@@ -35,7 +35,7 @@ CHUNK       = 2048          # Samples per capture chunk
 BANDS       = 64            # Number of frequency bands to output
 FPS         = 30            # Target updates per second
 SMOOTHING   = 0.67          # 0–1 — higher = smoother/slower band response
-GAIN        = 8.0           # Amplification — increase if bands are too quiet
+GAIN        = 5             # Amplification — increase if bands are too quiet
 
 # Frequency range to analyse (Hz)
 FREQ_MIN    = 40

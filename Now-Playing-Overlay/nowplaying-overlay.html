@@ -331,7 +331,7 @@ function updateUI({ artist, title, position, duration, volume }) {
   // Dynamic visualizer gain — logarithmic dB compensation
   // Reference point: -25dB = 1.0x, -40dB = ~5.6x, -10dB = ~0.18x
   if (volume !== null && isFinite(volume) && volume < 0) {
-    visGain = Math.pow(10, ((-25) - volume) / 20);
+    visGain = Math.max(0.4, Math.min(3.0, Math.pow(10, ((-25) - volume) / 40)));
   }
 }
 
