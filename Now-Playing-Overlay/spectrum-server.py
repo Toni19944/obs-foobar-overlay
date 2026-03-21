@@ -111,10 +111,16 @@ def compute_bands(data):
         else:
             band_vals.append(0.0)
 
-    # Bass boost — low bands get up to 2.2x boost
+    # Gentle taper across full range
     for i in range(len(band_vals)):
-        bass_boost = 1.0 + (1.0 - i / len(band_vals)) * 1.2
+        bass_boost = 1.0 + (1.0 - i / len(band_vals)) * 1.08
         band_vals[i] *= bass_boost
+
+    # Extra targeted bass boost for lowest 20% of bands
+    bass_cutoff = int(len(band_vals) * 0.2)
+    for i in range(bass_cutoff):
+        extra = 1.0 + (1.0 - i / bass_cutoff) * 1.15
+        band_vals[i] *= extra
 
     # Normalise to 0–1 with gain — use absolute scale, not relative peak
     band_vals = [min(1.0, v * GAIN) for v in band_vals]
