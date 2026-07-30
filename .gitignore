@@ -23,6 +23,7 @@ desktop.ini
 specs/
 .serena/
 CLAUDE.md
+docs/superpowers/
 
 # Machine-specific shortcuts
 *.lnk
