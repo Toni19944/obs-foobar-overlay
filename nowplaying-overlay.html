@@ -280,6 +280,24 @@ CONFIG.HIDE_WHEN_PAUSED = false;
     }
     if (specPort) CONFIG.SPECTRUM_PORT = parseInt(specPort, 10) || CONFIG.SPECTRUM_PORT;
     CONFIG.HIDE_WHEN_PAUSED = q.get('hideWhenPaused') === '1';
+
+    // ── Per-scene look overrides (additive, default-preserving) ──
+    // Let a second OBS browser source (e.g. a BRB/intermission scene) render
+    // a differently-sized/opacity/motion card without touching the default
+    // gaming-scene source, which passes none of these params.
+    const rootStyle    = document.documentElement.style;
+    const cardWidth     = parseFloat(q.get('cardWidth'));
+    const cardHeight    = parseFloat(q.get('cardHeight'));
+    const cardOpacity   = parseFloat(q.get('cardOpacity'));
+    const imgOpacityVal = parseFloat(q.get('imgOpacity'));
+    const bgMotion       = q.get('bgMotion');
+
+    if (!isNaN(cardWidth))   rootStyle.setProperty('--card-width', cardWidth + 'px');
+    if (!isNaN(cardHeight))  rootStyle.setProperty('--card-height', cardHeight + 'px');
+    if (!isNaN(cardOpacity)) rootStyle.setProperty('--card-bg', `rgba(0, 0, 0, ${cardOpacity})`);
+    if (!isNaN(imgOpacityVal)) rootStyle.setProperty('--img-opacity', String(imgOpacityVal));
+    if (bgMotion === '1') CONFIG.BG_MOTION = true;
+    else if (bgMotion === '0') CONFIG.BG_MOTION = false;
   } catch (_) { /* keep defaults */ }
 })();
 
