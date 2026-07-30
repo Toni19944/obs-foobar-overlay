@@ -66,9 +66,24 @@ The overlay page itself understands a few query parameters:
 | `hideWhenPaused=1` | `http://localhost:8081/?hideWhenPaused=1` | hide the card while playback is paused |
 | `port=<n>` | `http://localhost:9080/?port=9080` | tell the page which overlay port to poll — **required if you changed the overlay port** in Preferences (the page's internal default is 8081) |
 | `spectrumPort=<n>` | `http://localhost:8081/?spectrumPort=9500` | same for the spectrum WebSocket — **required if you changed the spectrum port** (internal default 9001) |
+| `cardWidth=<px>` | `?cardWidth=480` | card width in pixels (default `340`) |
+| `cardHeight=<px>` | `?cardHeight=200` | card height in pixels (default: auto, sized to content) |
+| `cardOpacity=<0-1>` | `?cardOpacity=0.6` | card background opacity (default `0.97`) |
+| `imgOpacity=<0-1>` | `?imgOpacity=0.5` | background image opacity (default `0.24`) |
+| `bgMotion=1\|0` | `?bgMotion=1` | force background FFT motion on/off (default off) |
 
 Flags combine with `&`, e.g.
 `http://localhost:9080/?port=9080&spectrumPort=9500&hideWhenPaused=1`.
+
+None of these are range-checked — an out-of-range value just renders however
+it renders, so feel free to push `cardWidth` past what the configurator's
+slider allows.
+
+**Per-scene setups:** because these are plain URL flags, you can point two
+different OBS browser sources at the same overlay URL with different query
+strings — e.g. your normal gaming scene with no flags, and a BRB/intermission
+scene at `?cardWidth=560&cardOpacity=0.5&bgMotion=1` — without maintaining a
+second overlay file or a second component build.
 
 ### Changing the overlay's look
 
