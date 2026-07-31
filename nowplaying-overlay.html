@@ -244,6 +244,7 @@ const CONFIG = {
   // This only affects the background image and does not touch the
   // existing glow/visualizer system in any way.
   BG_MOTION: false,
+  BG_MOTION_TARGET: 'image',  // 'image' (default) or 'backdrop' — see bgMotionTarget URL flag
   BG_MOTION_BANDS: 6,          // group server FFT into 6 broad bands
   BG_BASE_BLUR: 0.10,          // extra blur always present on top of --img-blur
   BG_BLUR_MAX_ADD: 1.6,        // FFT blur modulation — bigger swing than before
@@ -253,6 +254,7 @@ const CONFIG = {
   BG_BLUR_SMOOTH: 0.09,        // snappier blur response
   BG_DELAY_SMOOTH: 0.05,       // less lag vs foreground glow
   BG_MICRO_SMOOTH: 0.09,       // more responsive high-band micro motion
+  BACKDROP_BLUR_PULSE: 0.3,    // 'backdrop' target only: fraction of --card-blur added at peak mids (proportional, not additive px — base radius varies)
 
   // ── RENDER RATE CAP ──────────────────────────────────────────
   // Caps how often the canvas is redrawn and bg motion is updated.
@@ -298,6 +300,11 @@ CONFIG.HIDE_WHEN_PAUSED = false;
     if (!isNaN(imgOpacityVal)) rootStyle.setProperty('--img-opacity', String(imgOpacityVal));
     if (bgMotion === '1') CONFIG.BG_MOTION = true;
     else if (bgMotion === '0') CONFIG.BG_MOTION = false;
+
+    if (q.get('bgMotionTarget') === 'backdrop') {
+      CONFIG.BG_MOTION_TARGET = 'backdrop';
+      CONFIG.CARD_BACKDROP_BLUR = true;  // otherwise there's no glass blur to pulse
+    }
   } catch (_) { /* keep defaults */ }
 })();
 
@@ -338,6 +345,12 @@ if (CONFIG.CARD_BACKDROP_BLUR) {
 // (#4) Cache card radius — never changes at runtime
 const cachedCardRadius = parseFloat(getComputedStyle(document.documentElement)
   .getPropertyValue('--card-radius')) || 20;
+
+// Base backdrop-filter blur radius (px), read once — used by bgAnimate's
+// 'backdrop' motion target regardless of whether CARD_BACKDROP_BLUR was
+// already on or just auto-enabled by bgMotionTarget=backdrop.
+const cardBlurBase = parseFloat(getComputedStyle(document.documentElement)
+  .getPropertyValue('--card-blur')) || 22;
 
 // (#5) Parse VIS_COLOR once
 const [VIS_CR, VIS_CG, VIS_CB] = CONFIG.VIS_COLOR.split(',').map(s => s.trim());
@@ -459,11 +472,15 @@ function hideCard() {
 // - Shapes signal with a curve to soften low-level chatter
 // - Uses delayed targets + inertia so motion trails behind glow
 
+const BG_MOTION_TARGET = CONFIG.BG_MOTION_TARGET;
 const BG_BAND_GROUPS = CONFIG.BG_MOTION_BANDS;
 const bgGroupedBands = new Array(BG_BAND_GROUPS).fill(0);
 let bgDelayedLow  = 0, bgDelayedMid  = 0, bgDelayedHigh = 0;
 let bgZoomValue   = 1, bgBlurValue   = CONFIG.BG_BASE_BLUR, bgMicroValue = 0;
-const bgEnabled   = CONFIG.IMAGES && CONFIG.BG_MOTION;
+let bgBackdropBlurValue = cardBlurBase;
+// 'backdrop' mode doesn't touch the background image at all, so it must not
+// depend on CONFIG.IMAGES; 'image' mode is unchanged (still requires it).
+const bgEnabled = CONFIG.BG_MOTION && (BG_MOTION_TARGET === 'backdrop' || CONFIG.IMAGES);
 
 // Soft shaping to reduce chatter/spikes and keep motion subtle
 function bgShape(v) {
@@ -486,24 +503,39 @@ function bgRegroup(src) {
 function bgAnimate(t) {
   if (!bgEnabled) return;
 
-  // Broad frequency mapping:
-  // - bass drives slow zoom
-  // - mids drive blur
-  // - highs add tiny, heavily-smoothed micro-variation
+  // Broad frequency mapping (shared by both motion targets):
+  // - bass drives slow zoom (image target only)
+  // - mids drive blur (both targets)
+  // - highs add tiny, heavily-smoothed micro-variation (image target only)
   const lowRaw  = (bgGroupedBands[0] * 0.72) + (bgGroupedBands[1] * 0.28);
   const midRaw  = (bgGroupedBands[2] * 0.55) + (bgGroupedBands[3] * 0.45);
   const highRaw = (bgGroupedBands[4] * 0.45) + (bgGroupedBands[5] * 0.55);
 
-  // Shape + soft clamp so peaks do not snap the image
+  // Shape + soft clamp so peaks do not snap the target
   const lowTarget  = Math.min(0.95, bgShape(lowRaw));
   const midTarget  = Math.min(0.85, bgShape(midRaw) * 0.9);
   const highTarget = Math.min(0.70, bgShape(highRaw) * 0.7);
 
-  // Intentional response delay: background trails the foreground glow
+  // Intentional response delay: motion trails the foreground glow
   bgDelayedLow  += (lowTarget  - bgDelayedLow)  * CONFIG.BG_DELAY_SMOOTH;
   bgDelayedMid  += (midTarget  - bgDelayedMid)  * (CONFIG.BG_DELAY_SMOOTH * 1.15);
   bgDelayedHigh += (highTarget - bgDelayedHigh) * (CONFIG.BG_DELAY_SMOOTH * 0.9);
 
+  if (BG_MOTION_TARGET === 'backdrop') {
+    // No zoom here — scaling the card would visibly distort its text/border,
+    // unlike the invisible background image. Blur only, driven by mids alone,
+    // proportional to the base radius (a fixed px add would be imperceptible
+    // on a large base like 22px).
+    const backdropBlurTarget = cardBlurBase * (1 + bgDelayedMid * CONFIG.BACKDROP_BLUR_PULSE);
+    bgBackdropBlurValue += (backdropBlurTarget - bgBackdropBlurValue) * CONFIG.BG_BLUR_SMOOTH;
+
+    const backdropFilterStr = `blur(${bgBackdropBlurValue}px)`;
+    card.style.setProperty('backdrop-filter', backdropFilterStr);
+    card.style.setProperty('-webkit-backdrop-filter', backdropFilterStr);
+    return;
+  }
+
+  // ── 'image' target (default, unchanged from before this feature) ──
   // Slow baseline breathing independent of FFT
   const baselineZoom = 1 + CONFIG.BG_BASELINE_ZOOM * (0.5 + 0.5 * Math.sin(t * 0.16));
 
