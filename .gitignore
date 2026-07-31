@@ -27,3 +27,6 @@ docs/superpowers/
 
 # Machine-specific shortcuts
 *.lnk
+
+# Local git worktrees (scratch workspaces for isolated feature work)
+.worktrees/
