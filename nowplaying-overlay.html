@@ -246,13 +246,13 @@ const CONFIG = {
   BG_MOTION: false,
   BG_MOTION_BANDS: 6,          // group server FFT into 6 broad bands
   BG_BASE_BLUR: 0.10,          // extra blur always present on top of --img-blur
-  BG_BLUR_MAX_ADD: 0.83,       // FFT blur modulation stays very small
-  BG_ZOOM_MAX_ADD: 0.40,      // ~1.8% max extra zoom from FFT
-  BG_BASELINE_ZOOM: 0.025,    // slow continuous "breathing"
-  BG_ZOOM_SMOOTH: 0.032,       // slow inertia for cinematic zoom
-  BG_BLUR_SMOOTH: 0.032,       // slightly faster inertia for blur
-  BG_DELAY_SMOOTH: 0.020,      // intentional lag vs foreground glow
-  BG_MICRO_SMOOTH: 0.045,      // heavily smoothed high-band micro motion
+  BG_BLUR_MAX_ADD: 1.6,        // FFT blur modulation — bigger swing than before
+  BG_ZOOM_MAX_ADD: 0.75,       // bigger max extra zoom from FFT
+  BG_BASELINE_ZOOM: 0.045,     // more noticeable continuous "breathing"
+  BG_ZOOM_SMOOTH: 0.07,        // snappier zoom response (less cinematic lag)
+  BG_BLUR_SMOOTH: 0.09,        // snappier blur response
+  BG_DELAY_SMOOTH: 0.05,       // less lag vs foreground glow
+  BG_MICRO_SMOOTH: 0.09,       // more responsive high-band micro motion
 
   // ── RENDER RATE CAP ──────────────────────────────────────────
   // Caps how often the canvas is redrawn and bg motion is updated.
