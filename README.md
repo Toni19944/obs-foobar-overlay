@@ -71,6 +71,7 @@ The overlay page itself understands a few query parameters:
 | `cardOpacity=<0-1>` | `?cardOpacity=0.6` | card background opacity (default `0.97`) |
 | `imgOpacity=<0-1>` | `?imgOpacity=0.5` | background image opacity (default `0.24`) |
 | `bgMotion=1\|0` | `?bgMotion=1` | force background FFT motion on/off (default off) |
+| `bgMotionTarget=backdrop` | `?bgMotion=1&bgMotionTarget=backdrop` | redirect bgMotion's audio-reactive pulse from the background image to the card's glass blur instead — mutually exclusive with image motion (never both at once); auto-enables the card's backdrop blur; default (omitted) is `image`, today's unchanged behavior |
 
 Flags combine with `&`, e.g.
 `http://localhost:9080/?port=9080&spectrumPort=9500&hideWhenPaused=1`.
@@ -78,6 +79,13 @@ Flags combine with `&`, e.g.
 None of these are range-checked — an out-of-range value just renders however
 it renders, so feel free to push `cardWidth` past what the configurator's
 slider allows.
+
+**`bgMotionTarget=backdrop`** trades the background-image motion for a
+pulsing frosted-glass blur on the card itself (static and non-pulsing if
+`bgMotion=1` is omitted), driven by the same audio — useful if you want
+an audio-reactive look without animating the background image and the
+card's glass blur at the same time (the two are mutually exclusive per
+frame, so you only ever pay for one).
 
 **Per-scene setups:** because these are plain URL flags, you can point two
 different OBS browser sources at the same overlay URL with different query
