@@ -71,7 +71,7 @@ The overlay page itself understands a few query parameters:
 | `cardOpacity=<0-1>` | `?cardOpacity=0.6` | card background opacity (default `0.97`) |
 | `imgOpacity=<0-1>` | `?imgOpacity=0.5` | background image opacity (default `0.24`) |
 | `bgMotion=1\|0` | `?bgMotion=1` | force background FFT motion on/off (default off) |
-| `bgMotionTarget=backdrop` | `?bgMotion=1&bgMotionTarget=backdrop` | redirect bgMotion's audio-reactive pulse from the background image to the card's glass blur instead — mutually exclusive with image motion (never both at once); auto-enables the card's backdrop blur; default (omitted) is `image`, today's unchanged behavior |
+| `bgMotionTarget=backdrop` | `?bgMotion=1&bgMotionTarget=backdrop` | redirect bgMotion's audio-reactive pulse from the background image to a subtle inner white glow across the card itself instead — mutually exclusive with image motion (never both at once); default (omitted) is `image`, today's unchanged behavior |
 
 Flags combine with `&`, e.g.
 `http://localhost:9080/?port=9080&spectrumPort=9500&hideWhenPaused=1`.
@@ -81,11 +81,15 @@ it renders, so feel free to push `cardWidth` past what the configurator's
 slider allows.
 
 **`bgMotionTarget=backdrop`** trades the background-image motion for a
-frosted-glass blur on the card itself that pulses with the same audio
-(omit `bgMotion=1` and the blur is simply enabled, static) — useful if you
-want an audio-reactive look without animating the background image and the
-card's glass blur at the same time (the two are mutually exclusive per
-frame, so you only ever pay for one).
+subtle white glow washing across the card itself, pulsing with the same
+audio — useful if you want an audio-reactive look without animating the
+background image at all. This is an inset `box-shadow` on the card, not
+`backdrop-filter` (which can't reach through to whatever OBS composites
+behind a transparent browser source) and not `filter: brightness()`
+(which is multiplicative and has no visible effect on the card's black
+background). The card's frosted-glass blur (`CARD_BACKDROP_BLUR`, see
+below) is a separate, unrelated static toggle that `bgMotionTarget` does
+not touch.
 
 **Per-scene setups:** because these are plain URL flags, you can point two
 different OBS browser sources at the same overlay URL with different query
@@ -113,10 +117,10 @@ silently ignores every query-string flag. Manually copy that block back into
 the exported file before saving it over the repo-root copy. For
 `bgMotionTarget`, copying back the override block alone isn't enough: the
 configurator's own exported `CONFIG`/`bgAnimate` template has no
-`BG_MOTION_TARGET`/`BACKDROP_BLUR_PULSE` keys or backdrop-pulse branch, so
-`bgMotionTarget=backdrop` on such a file just flips on `CARD_BACKDROP_BLUR`
-with nothing to animate it — you'd also need to copy in those CONFIG keys
-and the updated `bgAnimate` function from the repo-root overlay.
+`BG_MOTION_TARGET`/`CARD_FLASH_GLOW_*` keys or backdrop-mode branch, so
+`bgMotionTarget=backdrop` on such a file silently does nothing — you'd also
+need to copy in those CONFIG keys and the updated `bgAnimate` function from
+the repo-root overlay.
 
 No rebuild is needed for: ports, background folder, timing offset (Preferences),
 or URL flags that your currently-installed component build already

@@ -252,9 +252,36 @@ const CONFIG = {
   BG_BASELINE_ZOOM: 0.045,     // more noticeable continuous "breathing"
   BG_ZOOM_SMOOTH: 0.07,        // snappier zoom response (less cinematic lag)
   BG_BLUR_SMOOTH: 0.09,        // snappier blur response
-  BG_DELAY_SMOOTH: 0.05,       // less lag vs foreground glow
+  BG_DELAY_SMOOTH: 0.07,       // less lag vs foreground glow (also feeds the backdrop-mode card flash)
   BG_MICRO_SMOOTH: 0.09,       // more responsive high-band micro motion
-  BACKDROP_BLUR_PULSE: 0.3,    // 'backdrop' target only: fraction of --card-blur added at peak mids (proportional, not additive px — base radius varies)
+  // 'backdrop' target only. Deliberately NOT backdrop-filter — that only
+  // samples content actually behind the element WITHIN the page, and this
+  // page has nothing there (transparent body); it cannot reach through to
+  // whatever OBS composites underneath a transparent browser source, so it
+  // never reliably rendered in OBS. Also deliberately NOT `filter:
+  // brightness()` — that's MULTIPLICATIVE (scales existing RGB by X), and
+  // the card's background is pure black (rgba(0,0,0,...)); 0 * anything
+  // is still 0, so it could never visibly brighten the card regardless of
+  // amplitude. This is an ADDITIVE inset glow instead (box-shadow), which
+  // paints real light onto the black background rather than trying to
+  // scale it — `inset` so it can't be clipped by card-wrap's overflow:
+  // hidden the way an outward glow could.
+  // Driven by bgDelayedMid (the same smoothed FFT mid-band signal as the
+  // image-mode blur, already delay-smoothed via BG_DELAY_SMOOTH) rather
+  // than a sharp peak-follower — a gentle continuous wash, not a flash on
+  // every transient.
+  // Reach (blur+spread) is FIXED, not scaled by the signal — bgDelayedMid
+  // typically sits low (0.03-0.17) even during normal listening, so
+  // scaling the *reach* by it meant the glow only ever got big enough to
+  // hit the card's center on a rare near-maximum peak, leaving the center
+  // permanently black otherwise. Large fixed spread/blur means the wash
+  // always reaches the full card regardless of size; only ALPHA (how
+  // visible it is) responds to the music, which is what actually needs to
+  // "flash". Low max alpha keeps it subtle so it doesn't compete with the
+  // spectrum/glow visualizer for the same border-area attention.
+  CARD_FLASH_GLOW_BLUR:   100,   // inset glow blur radius (px) — fixed, soft edge transition
+  CARD_FLASH_GLOW_SPREAD: 250,   // inset glow spread (px) — fixed, reaches well past center on typical card sizes
+  CARD_FLASH_GLOW_ALPHA:  0.35,  // inset glow opacity (white) at full signal — this is what pulses with the music
 
   // ── RENDER RATE CAP ──────────────────────────────────────────
   // Caps how often the canvas is redrawn and bg motion is updated.
@@ -301,10 +328,7 @@ CONFIG.HIDE_WHEN_PAUSED = false;
     if (bgMotion === '1') CONFIG.BG_MOTION = true;
     else if (bgMotion === '0') CONFIG.BG_MOTION = false;
 
-    if (q.get('bgMotionTarget') === 'backdrop') {
-      CONFIG.BG_MOTION_TARGET = 'backdrop';
-      CONFIG.CARD_BACKDROP_BLUR = true;  // otherwise there's no glass blur to pulse
-    }
+    if (q.get('bgMotionTarget') === 'backdrop') CONFIG.BG_MOTION_TARGET = 'backdrop';
   } catch (_) { /* keep defaults */ }
 })();
 
@@ -345,12 +369,6 @@ if (CONFIG.CARD_BACKDROP_BLUR) {
 // (#4) Cache card radius — never changes at runtime
 const cachedCardRadius = parseFloat(getComputedStyle(document.documentElement)
   .getPropertyValue('--card-radius')) || 20;
-
-// Base backdrop-filter blur radius (px), read once — used by bgAnimate's
-// 'backdrop' motion target regardless of whether CARD_BACKDROP_BLUR was
-// already on or just auto-enabled by bgMotionTarget=backdrop.
-const cardBlurBase = parseFloat(getComputedStyle(document.documentElement)
-  .getPropertyValue('--card-blur')) || 22;
 
 // (#5) Parse VIS_COLOR once
 const [VIS_CR, VIS_CG, VIS_CB] = CONFIG.VIS_COLOR.split(',').map(s => s.trim());
@@ -477,7 +495,6 @@ const BG_BAND_GROUPS = CONFIG.BG_MOTION_BANDS;
 const bgGroupedBands = new Array(BG_BAND_GROUPS).fill(0);
 let bgDelayedLow  = 0, bgDelayedMid  = 0, bgDelayedHigh = 0;
 let bgZoomValue   = 1, bgBlurValue   = CONFIG.BG_BASE_BLUR, bgMicroValue = 0;
-let bgBackdropBlurValue = cardBlurBase;
 // 'backdrop' mode doesn't touch the background image at all, so it must not
 // depend on CONFIG.IMAGES; 'image' mode is unchanged (still requires it).
 const bgEnabled = CONFIG.BG_MOTION && (BG_MOTION_TARGET === 'backdrop' || CONFIG.IMAGES);
@@ -523,15 +540,18 @@ function bgAnimate(t) {
 
   if (BG_MOTION_TARGET === 'backdrop') {
     // No zoom here — scaling the card would visibly distort its text/border,
-    // unlike the invisible background image. Blur only, driven by mids alone,
-    // proportional to the base radius (a fixed px add would be imperceptible
-    // on a large base like 22px).
-    const backdropBlurTarget = cardBlurBase * (1 + bgDelayedMid * CONFIG.BACKDROP_BLUR_PULSE);
-    bgBackdropBlurValue += (backdropBlurTarget - bgBackdropBlurValue) * CONFIG.BG_BLUR_SMOOTH;
+    // unlike the invisible background image. Deliberately an ADDITIVE inset
+    // glow (box-shadow), NOT `filter: brightness()` — see the
+    // CARD_FLASH_GLOW_BLUR comment in CONFIG for why brightness() can't
+    // work here (multiplicative on a black background).
+    //
+    // Driven by bgDelayedMid — a gentle continuous wash synced to the mids,
+    // not a sharp peak flash. Reach (blur/spread) is fixed so the wash
+    // always covers the full card; only alpha responds to the music.
+    const glowAlpha = bgDelayedMid * CONFIG.CARD_FLASH_GLOW_ALPHA;
 
-    const backdropFilterStr = `blur(${bgBackdropBlurValue}px)`;
-    card.style.setProperty('backdrop-filter', backdropFilterStr);
-    card.style.setProperty('-webkit-backdrop-filter', backdropFilterStr);
+    card.style.setProperty('box-shadow',
+      `inset 0 0 ${CONFIG.CARD_FLASH_GLOW_BLUR}px ${CONFIG.CARD_FLASH_GLOW_SPREAD}px rgba(255, 255, 255, ${glowAlpha})`);
     return;
   }
 
