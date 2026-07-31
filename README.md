@@ -81,9 +81,9 @@ it renders, so feel free to push `cardWidth` past what the configurator's
 slider allows.
 
 **`bgMotionTarget=backdrop`** trades the background-image motion for a
-pulsing frosted-glass blur on the card itself (static and non-pulsing if
-`bgMotion=1` is omitted), driven by the same audio — useful if you want
-an audio-reactive look without animating the background image and the
+frosted-glass blur on the card itself that pulses with the same audio
+(omit `bgMotion=1` and the blur is simply enabled, static) — useful if you
+want an audio-reactive look without animating the background image and the
 card's glass blur at the same time (the two are mutually exclusive per
 frame, so you only ever pay for one).
 
@@ -110,11 +110,21 @@ rebuild**:
 doesn't include the `applyRuntimeOverrides()` block described under
 "Browser-source URL flags" above, so a freshly-exported `nowplaying-overlay.html`
 silently ignores every query-string flag. Manually copy that block back into
-the exported file before saving it over the repo-root copy.
+the exported file before saving it over the repo-root copy. For
+`bgMotionTarget`, copying back the override block alone isn't enough: the
+configurator's own exported `CONFIG`/`bgAnimate` template has no
+`BG_MOTION_TARGET`/`BACKDROP_BLUR_PULSE` keys or backdrop-pulse branch, so
+`bgMotionTarget=backdrop` on such a file just flips on `CARD_BACKDROP_BLUR`
+with nothing to animate it — you'd also need to copy in those CONFIG keys
+and the updated `bgAnimate` function from the repo-root overlay.
 
 No rebuild is needed for: ports, background folder, timing offset (Preferences),
-URL flags like `?hideWhenPaused=1`, or the background images themselves — the
-bg folder is read live, add/remove images anytime.
+or URL flags that your currently-installed component build already
+understands, like `?hideWhenPaused=1` — a flag new to the repo (not yet in
+an installed build) still needs the same rebuild-and-reinstall cycle
+described above before it does anything. The background images themselves
+also need no rebuild — the bg folder is read live, add/remove images
+anytime.
 
 ![configurator preview](configurator-preview.png)
 
