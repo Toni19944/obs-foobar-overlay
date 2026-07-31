@@ -71,7 +71,7 @@ The overlay page itself understands a few query parameters:
 | `cardOpacity=<0-1>` | `?cardOpacity=0.6` | card background opacity (default `0.97`) |
 | `imgOpacity=<0-1>` | `?imgOpacity=0.5` | background image opacity (default `0.24`) |
 | `bgMotion=1\|0` | `?bgMotion=1` | force background FFT motion on/off (default off) |
-| `bgMotionTarget=backdrop` | `?bgMotion=1&bgMotionTarget=backdrop` | redirect bgMotion's audio-reactive pulse from the background image to a subtle inner white glow across the card itself instead — mutually exclusive with image motion (never both at once); default (omitted) is `image`, today's unchanged behavior |
+| `bgMotionTarget=card` | `?bgMotion=1&bgMotionTarget=card` | redirect bgMotion's audio-reactive pulse from the background image to a subtle inner white glow across the card itself instead — mutually exclusive with image motion (never both at once); default (omitted) is `image`, today's unchanged behavior |
 
 Flags combine with `&`, e.g.
 `http://localhost:9080/?port=9080&spectrumPort=9500&hideWhenPaused=1`.
@@ -80,7 +80,7 @@ None of these are range-checked — an out-of-range value just renders however
 it renders, so feel free to push `cardWidth` past what the configurator's
 slider allows.
 
-**`bgMotionTarget=backdrop`** trades the background-image motion for a
+**`bgMotionTarget=card`** trades the background-image motion for a
 subtle white glow washing across the card itself, pulsing with the same
 audio — useful if you want an audio-reactive look without animating the
 background image at all. This is an inset `box-shadow` on the card, not
@@ -117,8 +117,8 @@ silently ignores every query-string flag. Manually copy that block back into
 the exported file before saving it over the repo-root copy. For
 `bgMotionTarget`, copying back the override block alone isn't enough: the
 configurator's own exported `CONFIG`/`bgAnimate` template has no
-`BG_MOTION_TARGET`/`CARD_FLASH_GLOW_*` keys or backdrop-mode branch, so
-`bgMotionTarget=backdrop` on such a file silently does nothing — you'd also
+`BG_MOTION_TARGET`/`CARD_FLASH_GLOW_*` keys or card-mode branch, so
+`bgMotionTarget=card` on such a file silently does nothing — you'd also
 need to copy in those CONFIG keys and the updated `bgAnimate` function from
 the repo-root overlay.
 

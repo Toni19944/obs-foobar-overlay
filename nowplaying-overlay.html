@@ -244,7 +244,7 @@ const CONFIG = {
   // This only affects the background image and does not touch the
   // existing glow/visualizer system in any way.
   BG_MOTION: false,
-  BG_MOTION_TARGET: 'image',  // 'image' (default) or 'backdrop' — see bgMotionTarget URL flag
+  BG_MOTION_TARGET: 'image',  // 'image' (default) or 'card' — see bgMotionTarget URL flag
   BG_MOTION_BANDS: 6,          // group server FFT into 6 broad bands
   BG_BASE_BLUR: 0.10,          // extra blur always present on top of --img-blur
   BG_BLUR_MAX_ADD: 1.6,        // FFT blur modulation — bigger swing than before
@@ -252,9 +252,9 @@ const CONFIG = {
   BG_BASELINE_ZOOM: 0.045,     // more noticeable continuous "breathing"
   BG_ZOOM_SMOOTH: 0.07,        // snappier zoom response (less cinematic lag)
   BG_BLUR_SMOOTH: 0.09,        // snappier blur response
-  BG_DELAY_SMOOTH: 0.07,       // less lag vs foreground glow (also feeds the backdrop-mode card flash)
+  BG_DELAY_SMOOTH: 0.07,       // less lag vs foreground glow (also feeds the card-mode glow)
   BG_MICRO_SMOOTH: 0.09,       // more responsive high-band micro motion
-  // 'backdrop' target only. Deliberately NOT backdrop-filter — that only
+  // 'card' target only. Deliberately NOT backdrop-filter — that only
   // samples content actually behind the element WITHIN the page, and this
   // page has nothing there (transparent body); it cannot reach through to
   // whatever OBS composites underneath a transparent browser source, so it
@@ -328,7 +328,7 @@ CONFIG.HIDE_WHEN_PAUSED = false;
     if (bgMotion === '1') CONFIG.BG_MOTION = true;
     else if (bgMotion === '0') CONFIG.BG_MOTION = false;
 
-    if (q.get('bgMotionTarget') === 'backdrop') CONFIG.BG_MOTION_TARGET = 'backdrop';
+    if (q.get('bgMotionTarget') === 'card') CONFIG.BG_MOTION_TARGET = 'card';
   } catch (_) { /* keep defaults */ }
 })();
 
@@ -495,9 +495,9 @@ const BG_BAND_GROUPS = CONFIG.BG_MOTION_BANDS;
 const bgGroupedBands = new Array(BG_BAND_GROUPS).fill(0);
 let bgDelayedLow  = 0, bgDelayedMid  = 0, bgDelayedHigh = 0;
 let bgZoomValue   = 1, bgBlurValue   = CONFIG.BG_BASE_BLUR, bgMicroValue = 0;
-// 'backdrop' mode doesn't touch the background image at all, so it must not
+// 'card' mode doesn't touch the background image at all, so it must not
 // depend on CONFIG.IMAGES; 'image' mode is unchanged (still requires it).
-const bgEnabled = CONFIG.BG_MOTION && (BG_MOTION_TARGET === 'backdrop' || CONFIG.IMAGES);
+const bgEnabled = CONFIG.BG_MOTION && (BG_MOTION_TARGET === 'card' || CONFIG.IMAGES);
 
 // Soft shaping to reduce chatter/spikes and keep motion subtle
 function bgShape(v) {
@@ -538,7 +538,7 @@ function bgAnimate(t) {
   bgDelayedMid  += (midTarget  - bgDelayedMid)  * (CONFIG.BG_DELAY_SMOOTH * 1.15);
   bgDelayedHigh += (highTarget - bgDelayedHigh) * (CONFIG.BG_DELAY_SMOOTH * 0.9);
 
-  if (BG_MOTION_TARGET === 'backdrop') {
+  if (BG_MOTION_TARGET === 'card') {
     // No zoom here — scaling the card would visibly distort its text/border,
     // unlike the invisible background image. Deliberately an ADDITIVE inset
     // glow (box-shadow), NOT `filter: brightness()` — see the
