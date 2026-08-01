@@ -68,6 +68,7 @@ The overlay page itself understands a few query parameters:
 | `spectrumPort=<n>` | `http://localhost:8081/?spectrumPort=9500` | same for the spectrum WebSocket — **required if you changed the spectrum port** (internal default 9001) |
 | `cardWidth=<px>` | `?cardWidth=480` | card width in pixels (default `340`) |
 | `cardHeight=<px>` | `?cardHeight=200` | card height in pixels (default: auto, sized to content) — unlike the configurator's slider, `0` here is literal `0px` (a collapsed, invisible card), not "auto"; omit the flag entirely for auto sizing |
+| `cardRadius=<px>` | `?cardRadius=0` | card corner radius in pixels (default `20`; `0` = square corners) — also rounds the card's clip and the visualizer glow canvas to match |
 | `cardOpacity=<0-1>` | `?cardOpacity=0.6` | card background opacity (default `0.97`) |
 | `imgOpacity=<0-1>` | `?imgOpacity=0.5` | background image opacity (default `0.24`) |
 | `bgMotion=1\|0` | `?bgMotion=1` | force background FFT motion on/off (default off) |

@@ -317,12 +317,16 @@ CONFIG.HIDE_WHEN_PAUSED = false;
     const rootStyle    = document.documentElement.style;
     const cardWidth     = parseFloat(q.get('cardWidth'));
     const cardHeight    = parseFloat(q.get('cardHeight'));
+    const cardRadius    = parseFloat(q.get('cardRadius'));
     const cardOpacity   = parseFloat(q.get('cardOpacity'));
     const imgOpacityVal = parseFloat(q.get('imgOpacity'));
     const bgMotion       = q.get('bgMotion');
 
     if (!isNaN(cardWidth))   rootStyle.setProperty('--card-width', cardWidth + 'px');
     if (!isNaN(cardHeight))  rootStyle.setProperty('--card-height', cardHeight + 'px');
+    // --card-radius is shared by .card, .card-wrap and #vis-canvas, so one
+    // root-level override keeps the card, its clip and the glow canvas in sync.
+    if (!isNaN(cardRadius))  rootStyle.setProperty('--card-radius', cardRadius + 'px');
     if (!isNaN(cardOpacity)) rootStyle.setProperty('--card-bg', `rgba(0, 0, 0, ${cardOpacity})`);
     if (!isNaN(imgOpacityVal)) rootStyle.setProperty('--img-opacity', String(imgOpacityVal));
     if (bgMotion === '1') CONFIG.BG_MOTION = true;
