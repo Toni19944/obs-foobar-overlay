@@ -14,7 +14,7 @@
 
 DECLARE_COMPONENT_VERSION(
     "OBS Overlay Server",
-    "0.3.0",
+    "0.3.1",
     "Serves the OBS now-playing overlay (HTTP) and 64-band spectrum "
     "(WebSocket) directly from foobar2000 — no external processes.\n\n"
     "Replaces overlay-server.ps1 + spectrum-server.py + foo_beefweb.");
