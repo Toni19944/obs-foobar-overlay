@@ -302,6 +302,32 @@ const CONFIG = {
   CARD_FLASH_GLOW_SPREAD: 250,   // inset glow spread (px) — fixed, reaches well past center on typical card sizes
   CARD_FLASH_GLOW_ALPHA:  0.35,  // inset glow opacity (white) at full signal — this is what pulses with the music
 
+  // ── MIRRORED GLOW (outward bleed) ────────────────────────────
+  // Opt-in second copy of the border visualizer drawn OUTSIDE the card,
+  // so the glow bleeds past the edge instead of stopping at the hard cut
+  // produced by .card-wrap's overflow:hidden. That clip STAYS — it is
+  // what crops the inner glow, and the inner glow is unchanged.
+  //
+  // Both layers go through the same drawBands() renderer, at the same 44
+  // perimeter positions, reading the same smoothed visBands; only the
+  // sign of the perimeter normal differs. So they are frame-locked, they
+  // cannot drift apart as the look is tuned, and there is no second
+  // smoothing pass and no second WebSocket read.
+  //
+  // The mirror lives on its own canvas BEHIND the card. The mirrored bars
+  // point outward, but their blur also smears inward across the border;
+  // the card's own background (rgba(0,0,0,0.97) — effectively opaque)
+  // occludes that smear. Bleed outside, today's look inside, and because
+  // nothing is masked there is no seam at the border.
+  //
+  // OFF by default: with no `mirror` flag no element is created, no 2D
+  // context is allocated and nothing extra is drawn per frame.
+  MIRROR:         false,
+  MIRROR_SIZE:    22,    // outward bar depth (px) — matches VIS_BAR_DEPTH
+  MIRROR_OPACITY: 0.55,  // layer opacity — CSS opacity on the canvas, GPU-composited
+  MIRROR_BLUR:    18,    // blur radius (px) — above VIS_BLUR (12); a softer edge
+                         // reads as a bleed rather than a second set of bars
+
   // ── RENDER RATE CAP ──────────────────────────────────────────
   // Caps how often the canvas is redrawn and bg motion is updated.
   // Server sends FFT data at 30 FPS, so anything above 30 just
@@ -352,6 +378,16 @@ CONFIG.HIDE_WHEN_PAUSED = false;
     else if (bgMotion === '0') CONFIG.BG_MOTION = false;
 
     if (q.get('bgMotionTarget') === 'card') CONFIG.BG_MOTION_TARGET = 'card';
+
+    // Mirrored outward glow — see the MIRRORED GLOW block in CONFIG.
+    // Absent or unparseable values fall through to the defaults.
+    const mirrorSize    = parseFloat(q.get('mirrorSize'));
+    const mirrorOpacity = parseFloat(q.get('mirrorOpacity'));
+    const mirrorBlur    = parseFloat(q.get('mirrorBlur'));
+    if (q.get('mirror') === '1') CONFIG.MIRROR = true;
+    if (!isNaN(mirrorSize))    CONFIG.MIRROR_SIZE    = mirrorSize;
+    if (!isNaN(mirrorOpacity)) CONFIG.MIRROR_OPACITY = mirrorOpacity;
+    if (!isNaN(mirrorBlur))    CONFIG.MIRROR_BLUR    = mirrorBlur;
   } catch (_) { /* keep defaults */ }
 })();
 
