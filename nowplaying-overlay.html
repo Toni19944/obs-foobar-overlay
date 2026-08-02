@@ -48,6 +48,21 @@
     overflow: hidden;
   }
 
+  /* ── MIRROR STAGE ─────────────────────────────────────────────
+     Positioning context for the outward mirror canvas. That canvas
+     cannot live inside .card-wrap: .card-wrap's overflow:hidden is
+     exactly the clip that crops the inner glow to the card edge, and
+     that clip stays. Inert when the mirror is off — position:relative
+     and nothing else, so it has no layout effect of its own. */
+  .stage { position: relative; }
+
+  #vis-mirror {
+    position: absolute;
+    pointer-events: none;
+    /* inset, opacity and filter are set at runtime from CONFIG.MIRROR_*
+       (see the mirror layer setup in the script) */
+  }
+
   #vis-canvas {
     position: absolute;
     inset: 0;
@@ -182,27 +197,31 @@
 </head>
 <body>
 
-<!-- Wrapper exists so box-shadow glow isn't clipped by card's overflow:hidden -->
-<div class="card-wrap" id="card-wrap">
-  <!-- Spectrum canvas — sits over the card border, pointer-events:none -->
-  <canvas id="vis-canvas"></canvas>
-  <div class="card" id="card">
-    <div class="bg-layer">
-      <img class="bg-img" id="bg-a" src="" alt="" decoding="async">
-      <img class="bg-img" id="bg-b" src="" alt="" decoding="async">
-    </div>
-    <div class="content">
-      <div class="marquee-clip" id="artist-clip">
-        <div class="inner artist" id="artist">Artist</div>
+<!-- .stage is the positioning context for the outward mirror canvas (#vis-mirror,
+     created at runtime only when the mirror is enabled). It is inert otherwise. -->
+<div class="stage" id="stage">
+  <!-- Wrapper exists so box-shadow glow isn't clipped by card's overflow:hidden -->
+  <div class="card-wrap" id="card-wrap">
+    <!-- Spectrum canvas — sits over the card border, pointer-events:none -->
+    <canvas id="vis-canvas"></canvas>
+    <div class="card" id="card">
+      <div class="bg-layer">
+        <img class="bg-img" id="bg-a" src="" alt="" decoding="async">
+        <img class="bg-img" id="bg-b" src="" alt="" decoding="async">
       </div>
-      <div class="middle-row">
-        <div class="progress-bar">
-          <div class="progress-fill" id="progress-fill"></div>
+      <div class="content">
+        <div class="marquee-clip" id="artist-clip">
+          <div class="inner artist" id="artist">Artist</div>
         </div>
-        <div class="timer" id="timer">0:00 / 0:00</div>
-      </div>
-      <div class="marquee-clip" id="track-clip">
-        <div class="inner track" id="track">Track Title</div>
+        <div class="middle-row">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="timer" id="timer">0:00 / 0:00</div>
+        </div>
+        <div class="marquee-clip" id="track-clip">
+          <div class="inner track" id="track">Track Title</div>
+        </div>
       </div>
     </div>
   </div>
