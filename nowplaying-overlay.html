@@ -393,6 +393,7 @@ CONFIG.HIDE_WHEN_PAUSED = false;
 
 // ── Elements ───────────────────────────────────────────────────
 const cardWrap  = document.getElementById('card-wrap');
+const stage     = document.getElementById('stage');
 const card      = document.getElementById('card');
 const elArtist  = document.getElementById('artist');
 const elTrack   = document.getElementById('track');
@@ -652,6 +653,45 @@ const VIS_BANDS  = CONFIG.VIS_BANDS;
 const visBands   = new Float64Array(VIS_BANDS);  // smoothed
 const visRaw     = new Float64Array(VIS_BANDS);  // raw from WebSocket
 
+// ── Mirrored outward glow (opt-in) ─────────────────────────────
+// Built only when the mirror is enabled. When off, mirrorCanvas stays
+// null, no element is created, no 2D context is allocated, and
+// mirrorDraw() is never called — the page is exactly as it was.
+const mirrorOn = CONFIG.VISUALIZER && CONFIG.MIRROR;
+
+// Visible reach is roughly the bar depth plus about twice the blur
+// radius. The canvas is inset by -MIRROR_MARGIN on all four sides so
+// the blur isn't clipped, and body padding grows to match so the bleed
+// isn't cut off by the top/left edge of the OBS browser source. Growing
+// the padding is what creates that room, so with the mirror on the card
+// sits (MIRROR_MARGIN - 16)px further down-right in the page than it
+// does today — nudge that scene's browser source once to compensate.
+const MIRROR_MARGIN = mirrorOn
+  ? Math.ceil(Math.max(16, CONFIG.MIRROR_SIZE + 2 * CONFIG.MIRROR_BLUR))
+  : 0;
+
+let mirrorCanvas = null;
+let mirrorCtx    = null;
+
+if (mirrorOn) {
+  mirrorCanvas = document.createElement('canvas');
+  mirrorCanvas.id = 'vis-mirror';
+  mirrorCanvas.style.inset   = `-${MIRROR_MARGIN}px`;
+  mirrorCanvas.style.opacity = String(CONFIG.MIRROR_OPACITY);
+  // Same GPU-composited chained filter the inner canvas uses — not a
+  // per-stroke ctx.filter.
+  mirrorCanvas.style.filter  =
+    `blur(${CONFIG.MIRROR_BLUR}px) brightness(${CONFIG.VIS_BRIGHTNESS})`;
+  // Insert BEFORE .card-wrap. Both are positioned at the default
+  // z-index, so paint order follows DOM order: the card and the
+  // untouched inner glow stay on top, and the mirror's inward blur
+  // smear is occluded by the card's own background.
+  stage.insertBefore(mirrorCanvas, cardWrap);
+  mirrorCtx = mirrorCanvas.getContext('2d');
+  // Reserve page room so the outward bleed isn't clipped at the edge.
+  document.body.style.padding = `${MIRROR_MARGIN}px`;
+}
+
 // (#9) Precomputed band positions — recalculated on resize only
 let bandPositions = null;  // [{x, y, nx, ny}, ...]
 let cachedBarW    = 3;
@@ -710,6 +750,10 @@ function visResize() {
   visCanvas.width  = cardWrap.offsetWidth;
   visCanvas.height = cardWrap.offsetHeight;
   computeBandPositions();
+  if (mirrorCanvas) {
+    mirrorCanvas.width  = cardWrap.offsetWidth  + 2 * MIRROR_MARGIN;
+    mirrorCanvas.height = cardWrap.offsetHeight + 2 * MIRROR_MARGIN;
+  }
 }
 visResize();
 window.addEventListener('resize', visResize);
