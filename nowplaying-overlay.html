@@ -676,7 +676,8 @@ let mirrorCtx    = null;
 if (mirrorOn) {
   mirrorCanvas = document.createElement('canvas');
   mirrorCanvas.id = 'vis-mirror';
-  mirrorCanvas.style.inset   = `-${MIRROR_MARGIN}px`;
+  // left/top/width/height (not inset — see visResize()) are set from
+  // script once the inner canvas's bitmap size is known.
   mirrorCanvas.style.opacity = String(CONFIG.MIRROR_OPACITY);
   // Same GPU-composited chained filter the inner canvas uses — not a
   // per-stroke ctx.filter.
@@ -751,8 +752,29 @@ function visResize() {
   visCanvas.height = cardWrap.offsetHeight;
   computeBandPositions();
   if (mirrorCanvas) {
-    mirrorCanvas.width  = cardWrap.offsetWidth  + 2 * MIRROR_MARGIN;
-    mirrorCanvas.height = cardWrap.offsetHeight + 2 * MIRROR_MARGIN;
+    // Bitmap stays pinned to the inner canvas's own bitmap size (frozen
+    // at whatever cardWrap measured on this call), padded by the margin.
+    mirrorCanvas.width  = visCanvas.width  + 2 * MIRROR_MARGIN;
+    mirrorCanvas.height = visCanvas.height + 2 * MIRROR_MARGIN;
+
+    // #vis-canvas gets its CSS box from `width:100%; height:100%`, so it
+    // silently re-stretches on every layout pass to match cardWrap's
+    // LIVE size — including any growth a webfont swap adds after this
+    // very call, well before any 'resize' event could fire again. Its
+    // bitmap (set two lines above) never gets that update, so the inner
+    // glow already renders at a small, pre-existing, approved stretch.
+    // For the mirror to stay pixel-locked to it, its box must inherit
+    // that same live stretch rather than freezing to today's cardWrap
+    // size in px. Expressing left/top/width/height as percentages of
+    // .stage does that: mirrorCanvas is absolutely positioned and
+    // cardWrap is .stage's only in-flow child, so .stage's box always
+    // equals cardWrap's current box, and percentages are re-resolved by
+    // the browser on every layout — tracking the same live scale the
+    // inner canvas gets for free, even though computed here only once.
+    mirrorCanvas.style.left   = `${-(MIRROR_MARGIN / visCanvas.width)  * 100}%`;
+    mirrorCanvas.style.top    = `${-(MIRROR_MARGIN / visCanvas.height) * 100}%`;
+    mirrorCanvas.style.width  = `${(mirrorCanvas.width  / visCanvas.width)  * 100}%`;
+    mirrorCanvas.style.height = `${(mirrorCanvas.height / visCanvas.height) * 100}%`;
   }
 }
 visResize();
