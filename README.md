@@ -68,11 +68,15 @@ The overlay page itself understands a few query parameters:
 | `spectrumPort=<n>` | `http://localhost:8081/?spectrumPort=9500` | same for the spectrum WebSocket — **required if you changed the spectrum port** (internal default 9001) |
 | `cardWidth=<px>` | `?cardWidth=480` | card width in pixels (default `340`) |
 | `cardHeight=<px>` | `?cardHeight=200` | card height in pixels (default: auto, sized to content) — unlike the configurator's slider, `0` here is literal `0px` (a collapsed, invisible card), not "auto"; omit the flag entirely for auto sizing |
-| `cardRadius=<px>` | `?cardRadius=0` | card corner radius in pixels (default `20`; `0` = square corners) — also rounds the card's clip and the visualizer glow canvas to match |
+| `cardRadius=<px>` | `?cardRadius=1` | card corner radius in pixels (default `20`) — also rounds the card's clip and the visualizer glow canvas to match. **Use `1`, not `0`, for square corners** — see the known issue below |
 | `cardOpacity=<0-1>` | `?cardOpacity=0.6` | card background opacity (default `0.97`) |
 | `imgOpacity=<0-1>` | `?imgOpacity=0.5` | background image opacity (default `0.24`) |
 | `bgMotion=1\|0` | `?bgMotion=1` | force background FFT motion on/off (default off) |
 | `bgMotionTarget=card` | `?bgMotion=1&bgMotionTarget=card` | redirect bgMotion's audio-reactive pulse from the background image to a subtle inner white glow across the card itself instead — mutually exclusive with image motion (never both at once); default (omitted) is `image`, today's unchanged behavior |
+| `mirror=1` | `?mirror=1` | mirror the border visualizer's glow outward, so the same glow also runs *outside* the card edge (default off) — cut hard at the card's edge exactly like the inner glow, just pointing the other way |
+| `mirrorSize=<px>` | `?mirror=1&mirrorSize=30` | outward bar depth in pixels for the mirrored glow (default `22`, matching the inner glow's depth) — no effect unless `mirror=1` |
+| `mirrorOpacity=<0-1>` | `?mirror=1&mirrorOpacity=0.4` | opacity of the mirrored glow layer (default `0.55`) — no effect unless `mirror=1` |
+| `mirrorBlur=<px>` | `?mirror=1&mirrorBlur=8` | blur radius in pixels for the mirrored glow (default `12`, matching the inner glow's blur) — no effect unless `mirror=1` |
 
 Flags combine with `&`, e.g.
 `http://localhost:9080/?port=9080&spectrumPort=9500&hideWhenPaused=1`.
@@ -91,6 +95,45 @@ behind a transparent browser source) and not `filter: brightness()`
 background). The card's frosted-glass blur (`CARD_BACKDROP_BLUR`, see
 below) is a separate, unrelated static toggle that `bgMotionTarget` does
 not touch.
+
+**`mirror=1`** paints the same 44 perimeter bands a second time, pointing
+outward instead of inward. Both layers share one renderer and read the
+same smoothed band values in the same frame, so they cannot drift apart.
+The mirrored layer is masked to the region *outside* the card, giving it
+the same hard cut at the card's edge that `overflow: hidden` gives the
+inner glow — so it never washes over the card or dilutes the inner glow.
+Defaults deliberately match the inner glow (`mirrorSize` `22` =
+`VIS_BAR_DEPTH`, `mirrorBlur` `12` = `VIS_BLUR`), making the default look
+a true reflection; turn them down for something tighter, e.g.
+`?mirror=1&mirrorSize=14&mirrorBlur=8`.
+
+It also reserves extra room on the page to hold the outward glow: the
+page's outer padding grows from the default `16px` to
+`max(16, mirrorSize + 2 * mirrorBlur)` px — `46px` at default settings.
+That has two knock-on effects on your OBS browser source: the card itself
+renders `30px` further down and right than with the mirror off (at
+defaults), and the overlay's total footprint grows by `60px` on each axis
+(also at defaults). In practice that means you need to both reposition
+*and* enlarge the browser source in OBS — repositioning alone will leave
+the outward glow clipped at the source's right and bottom edges. With
+`mirror` off, padding stays `16px` and nothing about the existing layout
+changes.
+
+**Known issue — `cardRadius=0` is ignored by the glow geometry.** The card's
+own outline goes square, but both the inner visualizer glow and the mirrored
+outward glow keep following a rounded R=20 path, so you get a rounded halo
+around a square card. The cause is a falsy-zero fallback when the radius is
+read at startup, and it predates the mirror feature — the mirror only makes
+it easier to see.
+
+**Workaround: use `?cardRadius=1`.** A 1px radius is visually square and takes
+the normal code path, so the card, its clip, and both glow layers all agree.
+
+A proper fix is scoped for a later release. It is deliberately not bundled
+here because correcting it shifts the *inner* glow's geometry for anyone
+already passing `cardRadius=0`, and this release's whole guarantee is that the
+existing glow renders identically — so that change wants its own release and
+its own before/after baseline.
 
 **Per-scene setups:** because these are plain URL flags, you can point two
 different OBS browser sources at the same overlay URL with different query
