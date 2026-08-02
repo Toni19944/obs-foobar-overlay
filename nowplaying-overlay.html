@@ -545,6 +545,24 @@ function hideCard() {
       cancelAnimationFrame(rafId);
       rafId = null;
     }
+    // Cancelling the loop freezes whatever was last painted, and neither
+    // glow canvas is a child of .card, so the card's fade-out does not
+    // take them with it. hideCard() runs on ANY player-poll failure —
+    // foobar2000 closing, an HTTP hiccup — so without this the final
+    // frame's glow stays lit on a transparent OBS scene until a poll
+    // succeeds again, which never happens if foobar2000 stays shut.
+    // The mirrored layer makes it worse: it renders OUTSIDE the card, so
+    // once .card has faded there is nothing left for it to hide behind
+    // and it reads as a halo with no card under it.
+    // Both layers are cleared together — clearing only one would let them
+    // diverge on hide, which is exactly what sharing drawBands() avoids
+    // on the draw path.
+    visRaw.fill(0);
+    visBands.fill(0);
+    visCtx.clearRect(0, 0, visCanvas.width, visCanvas.height);
+    if (mirrorCtx) {
+      mirrorCtx.clearRect(0, 0, mirrorCanvas.width, mirrorCanvas.height);
+    }
   }
 }
 
