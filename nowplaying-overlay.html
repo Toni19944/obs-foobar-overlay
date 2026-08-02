@@ -780,10 +780,52 @@ function visResize() {
 visResize();
 window.addEventListener('resize', visResize);
 
+// Shared band renderer for both glow layers. The inner and mirrored
+// glows differ only in three values — which context they paint into,
+// which way the perimeter normal points, and the canvas-origin offset —
+// so they go through one renderer and cannot drift apart as the look is
+// tuned. Reads visBands; never writes it (smoothing is visDraw's alone).
+//   ctx    — target 2D context
+//   depth  — bar length in px at full amplitude
+//   sign   — +1 draws inward (the original glow), -1 draws outward
+//   offset — px translation, for canvases larger than the card
+// The caller owns its own clearRect.
+function drawBands(ctx, depth, sign, offset) {
+  ctx.save();
+  ctx.translate(offset, offset);
+
+  // (#6) Reuse line settings across all bands
+  ctx.lineCap = 'round';
+  ctx.lineWidth = cachedBarW;
+
+  for (let i = 0; i < VIS_BANDS; i++) {
+    if (visBands[i] < 0.005) continue;
+
+    const pos   = bandPositions[i];
+    const barH  = visBands[i] * depth;
+    const alpha = visBands[i] * CONFIG.VIS_MAX_OPACITY;
+    const endX  = pos.x + sign * pos.nx * barH;
+    const endY  = pos.y + sign * pos.ny * barH;
+
+    // (#6) Gradient with pre-parsed color channels — (#10) no .toFixed()
+    const grad = ctx.createLinearGradient(pos.x, pos.y, endX, endY);
+    grad.addColorStop(0,   `rgba(${VIS_CR},${VIS_CG},${VIS_CB},${alpha})`);
+    grad.addColorStop(0.4, `rgba(${VIS_CR},${VIS_CG},${VIS_CB},${alpha * 0.6})`);
+    grad.addColorStop(1,   `rgba(${VIS_CR},${VIS_CG},${VIS_CB},0)`);
+
+    ctx.beginPath();
+    ctx.strokeStyle = grad;
+    ctx.moveTo(pos.x, pos.y);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 function visDraw() {
-  const W     = visCanvas.width;
-  const H     = visCanvas.height;
-  const depth = CONFIG.VIS_BAR_DEPTH;
+  const W = visCanvas.width;
+  const H = visCanvas.height;
 
   visCtx.clearRect(0, 0, W, H);
   // (#1) No ctx.filter — blur is handled by CSS on the canvas element
@@ -797,31 +839,9 @@ function visDraw() {
     visBands[i] += (target - visBands[i]) * rate;
   }
 
-  // (#6) Reuse line settings across all bands
-  visCtx.lineCap = 'round';
-  visCtx.lineWidth = cachedBarW;
-
-  for (let i = 0; i < VIS_BANDS; i++) {
-    if (visBands[i] < 0.005) continue;
-
-    const pos   = bandPositions[i];
-    const barH  = visBands[i] * depth;
-    const alpha = visBands[i] * CONFIG.VIS_MAX_OPACITY;
-    const endX  = pos.x + pos.nx * barH;
-    const endY  = pos.y + pos.ny * barH;
-
-    // (#6) Gradient with pre-parsed color channels — (#10) no .toFixed()
-    const grad = visCtx.createLinearGradient(pos.x, pos.y, endX, endY);
-    grad.addColorStop(0,   `rgba(${VIS_CR},${VIS_CG},${VIS_CB},${alpha})`);
-    grad.addColorStop(0.4, `rgba(${VIS_CR},${VIS_CG},${VIS_CB},${alpha * 0.6})`);
-    grad.addColorStop(1,   `rgba(${VIS_CR},${VIS_CG},${VIS_CB},0)`);
-
-    visCtx.beginPath();
-    visCtx.strokeStyle = grad;
-    visCtx.moveTo(pos.x, pos.y);
-    visCtx.lineTo(endX, endY);
-    visCtx.stroke();
-  }
+  // Inward: sign +1, no offset. This is the original render loop, now
+  // shared with the mirrored layer.
+  drawBands(visCtx, CONFIG.VIS_BAR_DEPTH, 1, 0);
 }
 
 // ── (#2) Single rAF loop ────────────────────────────────────────
