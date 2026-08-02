@@ -329,8 +329,8 @@ const CONFIG = {
   MIRROR:         false,
   MIRROR_SIZE:    22,    // outward bar depth (px) — matches VIS_BAR_DEPTH
   MIRROR_OPACITY: 0.55,  // layer opacity — CSS opacity on the canvas, GPU-composited
-  MIRROR_BLUR:    18,    // blur radius (px) — above VIS_BLUR (12); a softer edge
-                         // reads as a bleed rather than a second set of bars
+  MIRROR_BLUR:    12,    // blur radius (px) — matches VIS_BLUR so the outward
+                         // bleed is a true mirror of the inner glow's softness
 
   // ── RENDER RATE CAP ──────────────────────────────────────────
   // Caps how often the canvas is redrawn and bg motion is updated.
@@ -687,14 +687,63 @@ if (mirrorOn) {
   // per-stroke ctx.filter.
   mirrorCanvas.style.filter  =
     `blur(${CONFIG.MIRROR_BLUR}px) brightness(${CONFIG.VIS_BRIGHTNESS})`;
-  // Insert BEFORE .card-wrap. Both are positioned at the default
-  // z-index, so paint order follows DOM order: the card and the
-  // untouched inner glow stay on top, and the mirror's inward blur
-  // smear is occluded by the card's own background.
+  // Insert BEFORE .card-wrap so paint order follows DOM order and the
+  // card plus the untouched inner glow stay on top. The mirror is also
+  // masked to the region OUTSIDE the card (see applyMirrorMask), so it
+  // cannot paint over the card at all.
   stage.insertBefore(mirrorCanvas, cardWrap);
   mirrorCtx = mirrorCanvas.getContext('2d');
   // Reserve page room so the outward bleed isn't clipped at the edge.
   document.body.style.padding = `${MIRROR_MARGIN}px`;
+}
+
+// Hard-cut the mirror at the card's edge, mirroring how .card-wrap's
+// overflow:hidden crops the inner glow — same cut, opposite side.
+//
+// This MUST be an element-level mask, not an in-canvas erase. MIRROR_BLUR
+// is a CSS filter on the element, and CSS applies filter BEFORE mask, so
+// the mask cuts the already-blurred result. Erasing inside the bitmap
+// instead would just let the blur smear the soft edge back over the card
+// — which is the artifact this removes.
+//
+// The mask is an SVG whose viewBox is in mirror-BITMAP units with
+// preserveAspectRatio="none", plus mask-size:100% 100%. That maps bitmap
+// units onto the element box exactly the way the canvas bitmap itself is
+// mapped, so the cut stays pixel-locked to the glow through the live
+// webfont stretch described in visResize().
+function applyMirrorMask() {
+  const EW = mirrorCanvas.width;
+  const EH = mirrorCanvas.height;
+  const M  = MIRROR_MARGIN;
+  const W  = visCanvas.width;
+  const H  = visCanvas.height;
+  // Same radius the glow geometry uses, so the knockout follows the exact
+  // curve the bars are laid out along. Clamped like a CSS corner radius.
+  const R  = Math.max(0, Math.min(cachedCardRadius, W / 2, H / 2));
+
+  const hole = R > 0
+    ? `M${M + R},${M}` +
+      `H${M + W - R}A${R},${R} 0 0 1 ${M + W},${M + R}` +
+      `V${M + H - R}A${R},${R} 0 0 1 ${M + W - R},${M + H}` +
+      `H${M + R}A${R},${R} 0 0 1 ${M},${M + H - R}` +
+      `V${M + R}A${R},${R} 0 0 1 ${M + R},${M}Z`
+    : `M${M},${M}H${M + W}V${M + H}H${M}Z`;
+
+  // fill-rule="evenodd" turns the inner subpath into a hole: opaque
+  // everywhere outside the card, fully transparent inside it.
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${EW} ${EH}" ` +
+    `preserveAspectRatio="none">` +
+    `<path fill="#fff" fill-rule="evenodd" ` +
+    `d="M0,0H${EW}V${EH}H0Z${hole}"/></svg>`;
+  const url = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+
+  mirrorCanvas.style.maskImage        = url;
+  mirrorCanvas.style.webkitMaskImage  = url;
+  mirrorCanvas.style.maskSize         = '100% 100%';
+  mirrorCanvas.style.webkitMaskSize   = '100% 100%';
+  mirrorCanvas.style.maskRepeat       = 'no-repeat';
+  mirrorCanvas.style.webkitMaskRepeat = 'no-repeat';
 }
 
 // (#9) Precomputed band positions — recalculated on resize only
@@ -779,6 +828,10 @@ function visResize() {
     mirrorCanvas.style.top    = `${-(MIRROR_MARGIN / visCanvas.height) * 100}%`;
     mirrorCanvas.style.width  = `${(mirrorCanvas.width  / visCanvas.width)  * 100}%`;
     mirrorCanvas.style.height = `${(mirrorCanvas.height / visCanvas.height) * 100}%`;
+
+    // Rebuilt here because it is expressed in bitmap units, which the two
+    // assignments above can change.
+    applyMirrorMask();
   }
 }
 visResize();
