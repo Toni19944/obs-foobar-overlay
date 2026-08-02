@@ -68,7 +68,7 @@ The overlay page itself understands a few query parameters:
 | `spectrumPort=<n>` | `http://localhost:8081/?spectrumPort=9500` | same for the spectrum WebSocket — **required if you changed the spectrum port** (internal default 9001) |
 | `cardWidth=<px>` | `?cardWidth=480` | card width in pixels (default `340`) |
 | `cardHeight=<px>` | `?cardHeight=200` | card height in pixels (default: auto, sized to content) — unlike the configurator's slider, `0` here is literal `0px` (a collapsed, invisible card), not "auto"; omit the flag entirely for auto sizing |
-| `cardRadius=<px>` | `?cardRadius=0` | card corner radius in pixels (default `20`; `0` = square corners) — also rounds the card's clip and the visualizer glow canvas to match |
+| `cardRadius=<px>` | `?cardRadius=1` | card corner radius in pixels (default `20`) — also rounds the card's clip and the visualizer glow canvas to match. **Use `1`, not `0`, for square corners** — see the known issue below |
 | `cardOpacity=<0-1>` | `?cardOpacity=0.6` | card background opacity (default `0.97`) |
 | `imgOpacity=<0-1>` | `?imgOpacity=0.5` | background image opacity (default `0.24`) |
 | `bgMotion=1\|0` | `?bgMotion=1` | force background FFT motion on/off (default off) |
@@ -118,6 +118,22 @@ defaults), and the overlay's total footprint grows by `60px` on each axis
 the outward glow clipped at the source's right and bottom edges. With
 `mirror` off, padding stays `16px` and nothing about the existing layout
 changes.
+
+**Known issue — `cardRadius=0` is ignored by the glow geometry.** The card's
+own outline goes square, but both the inner visualizer glow and the mirrored
+outward glow keep following a rounded R=20 path, so you get a rounded halo
+around a square card. The cause is a falsy-zero fallback when the radius is
+read at startup, and it predates the mirror feature — the mirror only makes
+it easier to see.
+
+**Workaround: use `?cardRadius=1`.** A 1px radius is visually square and takes
+the normal code path, so the card, its clip, and both glow layers all agree.
+
+A proper fix is scoped for a later release. It is deliberately not bundled
+here because correcting it shifts the *inner* glow's geometry for anyone
+already passing `cardRadius=0`, and this release's whole guarantee is that the
+existing glow renders identically — so that change wants its own release and
+its own before/after baseline.
 
 **Per-scene setups:** because these are plain URL flags, you can point two
 different OBS browser sources at the same overlay URL with different query
