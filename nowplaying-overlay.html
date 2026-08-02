@@ -844,6 +844,15 @@ function visDraw() {
   drawBands(visCtx, CONFIG.VIS_BAR_DEPTH, 1, 0);
 }
 
+// The outward layer. Same renderer, same bandPositions, same visBands
+// the inner glow just smoothed — only the normal's sign and the canvas
+// offset differ. Because bandPositions is shared, the mirror follows
+// --card-radius automatically, including the cardRadius URL override.
+function mirrorDraw() {
+  mirrorCtx.clearRect(0, 0, mirrorCanvas.width, mirrorCanvas.height);
+  drawBands(mirrorCtx, CONFIG.MIRROR_SIZE, -1, MIRROR_MARGIN);
+}
+
 // ── (#2) Single rAF loop ────────────────────────────────────────
 // Frame interval for the render rate cap. 0 = uncapped (run at browser rAF rate).
 const FRAME_INTERVAL_MS = CONFIG.RENDER_FPS > 0 ? 1000 / CONFIG.RENDER_FPS : 0;
@@ -864,7 +873,12 @@ function animationLoop() {
   bgAnimate(t);
 
   // Visualizer canvas draw
-  if (CONFIG.VISUALIZER) visDraw();
+  if (CONFIG.VISUALIZER) {
+    visDraw();
+    // Must run AFTER visDraw — it consumes the visBands values visDraw
+    // just smoothed, which is what keeps the two layers frame-locked.
+    if (mirrorOn) mirrorDraw();
+  }
 }
 
 // (#8) Start/stop helpers
