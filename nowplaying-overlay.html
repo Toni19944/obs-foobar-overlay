@@ -53,14 +53,18 @@
      cannot live inside .card-wrap: .card-wrap's overflow:hidden is
      exactly the clip that crops the inner glow to the card edge, and
      that clip stays. Inert when the mirror is off — position:relative
-     and nothing else, so it has no layout effect of its own. */
+     and nothing else, so it has no layout effect of its own. Must never
+     gain overflow, transform, filter, or contain — any of those would
+     clip the mirror or reparent it into a new stacking context and break
+     the outward bleed. */
   .stage { position: relative; }
 
   #vis-mirror {
     position: absolute;
     pointer-events: none;
-    /* inset, opacity and filter are set at runtime from CONFIG.MIRROR_*
-       (see the mirror layer setup in the script) */
+    /* opacity and filter are set at runtime from CONFIG.MIRROR_* when the
+       mirror layer is created; left/top/width/height are set as percentages
+       in visResize() (not inset — see that function for why) */
   }
 
   #vis-canvas {

@@ -73,6 +73,10 @@ The overlay page itself understands a few query parameters:
 | `imgOpacity=<0-1>` | `?imgOpacity=0.5` | background image opacity (default `0.24`) |
 | `bgMotion=1\|0` | `?bgMotion=1` | force background FFT motion on/off (default off) |
 | `bgMotionTarget=card` | `?bgMotion=1&bgMotionTarget=card` | redirect bgMotion's audio-reactive pulse from the background image to a subtle inner white glow across the card itself instead — mutually exclusive with image motion (never both at once); default (omitted) is `image`, today's unchanged behavior |
+| `mirror=1` | `?mirror=1` | mirror the border visualizer's glow outward past the card edge, so it bleeds into the transparent page instead of stopping at a hard cut (default off) |
+| `mirrorSize=<px>` | `?mirror=1&mirrorSize=30` | outward bar depth in pixels for the mirrored glow (default `22`) — no effect unless `mirror=1` |
+| `mirrorOpacity=<0-1>` | `?mirror=1&mirrorOpacity=0.4` | opacity of the mirrored glow layer (default `0.55`) — no effect unless `mirror=1` |
+| `mirrorBlur=<px>` | `?mirror=1&mirrorBlur=24` | blur radius in pixels for the mirrored glow (default `18`) — no effect unless `mirror=1` |
 
 Flags combine with `&`, e.g.
 `http://localhost:9080/?port=9080&spectrumPort=9500&hideWhenPaused=1`.
@@ -91,6 +95,18 @@ behind a transparent browser source) and not `filter: brightness()`
 background). The card's frosted-glass blur (`CARD_BACKDROP_BLUR`, see
 below) is a separate, unrelated static toggle that `bgMotionTarget` does
 not touch.
+
+**`mirror=1`** reserves extra room on the page to hold the outward bleed:
+the page's outer padding grows from the default `16px` to
+`max(16, mirrorSize + 2 * mirrorBlur)` px — `58px` at default settings.
+That has two knock-on effects on your OBS browser source: the card itself
+renders `42px` further down and right than with the mirror off (at
+defaults), and the overlay's total footprint grows by `84px` on each axis
+(also at defaults). In practice that means you need to both reposition
+*and* enlarge the browser source in OBS — repositioning alone will leave
+the outward bleed clipped at the source's right and bottom edges. With
+`mirror` off, padding stays `16px` and nothing about the existing layout
+changes.
 
 **Per-scene setups:** because these are plain URL flags, you can point two
 different OBS browser sources at the same overlay URL with different query
