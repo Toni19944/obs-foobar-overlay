@@ -9,6 +9,8 @@ env/
 # Never commit binary archives or local build output
 *.zip
 build/
+build-x64/
+build-x86/
 dist/
 *.manifest
 
