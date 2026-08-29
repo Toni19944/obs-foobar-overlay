@@ -1,15 +1,25 @@
 # foo_obs_overlay — native foobar2000 overlay component (feature 013).
-# MSVC x64 only. Builds: vendored fb2k SDK static libs, CivetWeb, KissFFT,
-# the component DLL (+ build-time asset embed), the DSP parity oracle_runner,
+# MSVC, multi-arch (x64 + Win32). Builds: vendored fb2k SDK static libs, CivetWeb,
+# KissFFT, the component DLL (+ build-time asset embed), the DSP parity oracle_runner,
 # and the .fb2k-component package.
 cmake_minimum_required(VERSION 3.24)
 project(foo_obs_overlay LANGUAGES C CXX)
 
 if(NOT MSVC)
-    message(FATAL_ERROR "foo_obs_overlay builds with MSVC only (plan: v143+ x64)")
+    message(FATAL_ERROR "foo_obs_overlay builds with MSVC only (plan: v143+)")
 endif()
-if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(FATAL_ERROR "x64 only — configure with a 64-bit MSVC toolchain")
+
+# Target architecture (fb2k 2.x multi-arch): select the matching SDK import lib and
+# the component-zip layout by pointer size. x64 → shared-x64.lib, DLL under x64/;
+# Win32 → shared-Win32.lib, DLL at the zip root. The x64 path is unchanged from before.
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(FB2K_SHARED_LIB shared-x64.lib)
+    set(FB2K_PKG_DLL_REL "x64/foo_obs_overlay.dll")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set(FB2K_SHARED_LIB shared-Win32.lib)
+    set(FB2K_PKG_DLL_REL "foo_obs_overlay.dll")
+else()
+    message(FATAL_ERROR "Unsupported pointer size (${CMAKE_SIZEOF_VOID_P}) — configure a 32- or 64-bit MSVC toolchain")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -89,7 +99,7 @@ add_library(foo_obs_overlay SHARED
 target_include_directories(foo_obs_overlay PRIVATE src)
 target_link_libraries(foo_obs_overlay PRIVATE
     fb2k_sdk civetweb kissfft
-    ${SDK_ROOT}/foobar2000/shared/shared-x64.lib
+    ${SDK_ROOT}/foobar2000/shared/${FB2K_SHARED_LIB}
     comctl32 ole32)
 set_target_properties(foo_obs_overlay PROPERTIES PREFIX "")
 
@@ -105,12 +115,15 @@ if(EXISTS ${REPO_ROOT}/tests/parity/oracle_runner.cpp)
 endif()
 
 # ---------------------------------------------------------------- package
-# fb2k 2.x multi-arch layout: 64-bit DLL lives under x64/ inside the zip.
+# Single-arch .fb2k-component for this build tree. fb2k 2.x multi-arch layout:
+# 64-bit DLL lives under x64/; 32-bit (Win32) DLL lives at the zip root. The
+# unified two-arch package is assembled across trees by build-multiarch.ps1.
 set(PKG_DIR ${CMAKE_CURRENT_BINARY_DIR}/package)
+get_filename_component(PKG_DLL_DIR ${PKG_DIR}/${FB2K_PKG_DLL_REL} DIRECTORY)
 add_custom_target(fb2k_component ALL
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${PKG_DIR}/x64
-    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:foo_obs_overlay> ${PKG_DIR}/x64/foo_obs_overlay.dll
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${PKG_DLL_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:foo_obs_overlay> ${PKG_DIR}/${FB2K_PKG_DLL_REL}
     COMMAND ${CMAKE_COMMAND} -E chdir ${PKG_DIR} ${CMAKE_COMMAND} -E tar cf
-        ${CMAKE_CURRENT_BINARY_DIR}/foo_obs_overlay.fb2k-component --format=zip x64/foo_obs_overlay.dll
+        ${CMAKE_CURRENT_BINARY_DIR}/foo_obs_overlay.fb2k-component --format=zip ${FB2K_PKG_DLL_REL}
     DEPENDS foo_obs_overlay
-    COMMENT "Packaging foo_obs_overlay.fb2k-component (x64/ layout)")
+    COMMENT "Packaging foo_obs_overlay.fb2k-component (${FB2K_PKG_DLL_REL})")
